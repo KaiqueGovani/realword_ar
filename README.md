@@ -13,7 +13,7 @@ Este projeto está alinhado com o *ODS 4* da ONU:
 ---
 
 ## 🛠️ Tecnologias Utilizadas  
-- *Unity (C#)* → Desenvolvimento do front-end e back-end do aplicativo.  
+- **Unity (C#)** → Desenvolvimento do front-end e back-end do aplicativo.  
 - *NestJS* → Servidor para gerenciamento de requisições e integração com serviços externos.  
 - *LLM (Large Language Model)* → Suporte inteligente para reconhecimento e processamento de linguagem.  
 - *Figma* → Prototipação e definição do design visual da aplicação.  
