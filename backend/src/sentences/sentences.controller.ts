@@ -7,7 +7,8 @@ export class SentencesController {
 
   @Post()
   getSentences(@Body('object') object: string) {
-    const sentences = this.sentencesService.getSentences(object);
+    console.log('Received object:', object);
+    const sentences = this.sentencesService.getSentences(object || 'object');
     return { sentences };
   }
 }
