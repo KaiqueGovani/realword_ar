@@ -1,14 +1,17 @@
 import { Controller, Post, Body } from '@nestjs/common';
-import { SentencesService } from './sentences.service';
+import { LlmService } from '../llm/llm.service';
 
 @Controller('sentences')
 export class SentencesController {
-  constructor(private readonly sentencesService: SentencesService) {}
+  constructor(private readonly llmService: LlmService) {}
 
   @Post()
-  getSentences(@Body('object') object: string) {
+  async createSentence(@Body() body: { object: string }) {
+    const { object } = body;
     console.log('Received object:', object);
-    const sentences = this.sentencesService.getSentences(object || 'object');
+
+    const sentences = await this.llmService.generateSentences(object);
+
     return { sentences };
   }
 }
