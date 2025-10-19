@@ -1,16 +1,35 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import axios from 'axios';
 
 @Injectable()
 export class LlmService {
   private readonly logger = new Logger(LlmService.name);
-  private readonly ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434/api/chat';
+  private readonly ollamaUrl =
+    process.env.OLLAMA_URL || 'http://localhost:11434/api/chat';
   private readonly model = process.env.OLLAMA_MODEL || 'phi3';
 
-  async generateSentences(object: string): Promise<string[]> {
-    const prompt = `Generate two EXTREMELY simple sentences including "${object}", for English learners. Output ONLY a valid JSON array like ["Sentence one.","Sentence two."].`;
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
-    this.logger.debug(`🚀 Sending request to Ollama for "${object}"...`);
+  async generateSentences(object: string): Promise<string[]> {
+    const cached = await this.cacheManager.get<string[]>(object);
+    if (cached) {
+      this.logger.debug(`💾 Cache hit for "${object}"`);
+      return cached;
+    }
+
+    this.logger.debug(`🚀 Cache miss for "${object}" — calling Ollama...`);
+
+    const sentences = await this.callOllama(object);
+
+    await this.cacheManager.set(object, sentences, 86400);
+
+    return sentences;
+  }
+
+  private async callOllama(object: string): Promise<string[]> {
+    const prompt = `Generate two EXTREMELY simple sentences including "${object}", for English learners who have never spoken English before. Output ONLY a valid JSON array like ["Sentence one.","Sentence two."].`;
 
     try {
       const response = await axios.post(this.ollamaUrl, {
@@ -39,11 +58,12 @@ export class LlmService {
       this.logger.debug(`🧩 Cleaned response for "${object}": ${cleaned}`);
 
       try {
-        const sentences = JSON.parse(cleaned);
-        if (Array.isArray(sentences[0])) {
-          return sentences[0];
-        }
-        if (Array.isArray(sentences)){
+        const parsed = JSON.parse(cleaned);
+
+        const sentences = Array.isArray(parsed[0]) ? parsed[0] : parsed;
+
+        if (Array.isArray(sentences)) {
+          this.logger.debug(`✅ Parsed sentences for "${object}": ${sentences}`);
           return sentences;
         }
       } catch (err) {
