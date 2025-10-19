@@ -1,0 +1,120 @@
+# ===================================
+# Unity Generated Files
+# ===================================
+
+# This folder path contains artifacts generated from your Unity project build process
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+
+# Never ignore Asset meta data
+![Aa]ssets/**/*.meta
+
+# Uncomment this line if you wish to ignore the asset store tools plugin
+# [Aa]ssets/AssetStoreTools*
+
+# TextMesh Pro files
+[Aa]ssets/TextMesh*Pro/
+
+# ===================================
+# Visual Studio / Rider / VSCode
+# ===================================
+
+# Visual Studio cache directory
+.vs/
+.vscode/
+
+# Rider
+.idea/
+*.sln.iml
+
+# Visual Studio files
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# ===================================
+# OS Generated Files
+# ===================================
+
+# OS X
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+[Tt]humbs.db
+[Dd]esktop.ini
+
+# Windows
+Thumbs.db
+Thumbs.db.meta
+
+# ===================================
+# Unity Specific
+# ===================================
+
+# Unity3D generated meta files
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Unity3D generated file on crash reports
+sysinfo.txt
+
+# Builds
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# Crashlytics generated file
+crashlytics-build.properties
+
+# Packed Addressables
+[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+
+# Temporary auto-generated Android Assets
+[Aa]ssets/[Ss]treaming[Aa]ssets/aa.meta
+[Aa]ssets/[Ss]treaming[Aa]ssets/aa/*
+
+# ===================================
+# ESPECÍFICO PARA SEU PROBLEMA
+# ===================================
+
+# Arquivos de backup e output gerados
+**/RealWord*/
+**/realword_BackUpThisFolder_ButDontShipItWithYourGame/
+**/Il2CppOutputProject/
+**/_Generated*/
+*_Generated.cpp
+*_Generated_CodeGen.c
+*_CodeGen.c
+analytics.json
+Assembly-CSharp.cpp
+Assembly-CSharp_CodeGen.c
+GenericMethods.cpp
+GenericMethods__1.cpp
+
+# Build output folders
+*/[Bb]uild/
+*/[Bb]uilds/
+*/[Ll]ibrary/
+*/[Tt]emp/
+*/[Oo]bj/
