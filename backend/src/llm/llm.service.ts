@@ -12,35 +12,55 @@ export class LlmService {
 
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
-  async generateSentences(object: string): Promise<string[]> {
-    const cached = await this.cacheManager.get<string[]>(object);
+  async generateSentences(
+    object: string,
+    language: string = 'en',
+  ): Promise<{ phrases: string[]; translations: string[] }> {
+    const cacheKey = `${object}_${language}`;
+    const cached = await this.cacheManager.get(cacheKey);
+
     if (cached) {
-      this.logger.debug(`💾 Cache hit for "${object}"`);
-      return cached;
+      this.logger.debug(`💾 Cache hit for "${cacheKey}"`);
+      return cached as { phrases: string[]; translations: string[] };
     }
 
-    this.logger.debug(`🚀 Cache miss for "${object}" — calling Ollama...`);
+    this.logger.debug(`🚀 Cache miss for "${cacheKey}" — calling Ollama...`);
+    const result = await this.callOllama(object, language);
 
-    const sentences = await this.callOllama(object);
-
-    await this.cacheManager.set(object, sentences, 86400);
-
-    return sentences;
+    await this.cacheManager.set(cacheKey, result, 86400);
+    return result;
   }
 
-  private async callOllama(object: string): Promise<string[]> {
-    const prompt = `Generate two EXTREMELY simple sentences including "${object}", for English learners who have never spoken English before. Output ONLY a valid JSON array like ["Sentence one.","Sentence two."].`;
+  private async callOllama(
+    object: string,
+    language: string,
+  ): Promise<{ phrases: string[]; translations: string[] }> {
+    const prompt = `You are an assistant for English learners who are absolute beginners.
+Generate exactly two extremely simple English sentences that include the noun "${object}".
+Then, translate each sentence into ${language}.
+
+Rules:
+- Use correct and natural grammar in both languages.
+- Keep each English sentence under 10 words.
+- Make sure each translation matches its English sentence exactly in meaning.
+- Avoid literal errors (for example, do not translate "sit" as "consigo").
+- Use common, natural verbs for ${language}, not word-for-word mistakes.
+- Do not add explanations, extra text, or markdown.
+
+Output ONLY a valid JSON object in this format:
+{
+  "phrases": ["English sentence 1.", "English sentence 2."],
+  "translations": ["Translation 1.", "Translation 2."]
+}`;
 
     try {
       const response = await axios.post(this.ollamaUrl, {
         model: this.model,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
+        messages: [{ role: 'user', content: prompt }],
         stream: false,
+        options:{
+          temperature:0.2
+        }
       });
 
       let text =
@@ -55,35 +75,44 @@ export class LlmService {
         cleaned = cleaned.replace(/```json|```/gi, '').trim();
       }
 
-      this.logger.debug(`🧩 Cleaned response for "${object}": ${cleaned}`);
+      this.logger.debug(`🧩 Cleaned response: ${cleaned}`);
 
       try {
         const parsed = JSON.parse(cleaned);
 
-        const sentences = Array.isArray(parsed[0]) ? parsed[0] : parsed;
-
-        if (Array.isArray(sentences)) {
-          this.logger.debug(`✅ Parsed sentences for "${object}": ${sentences}`);
-          return sentences;
+        if (
+          parsed &&
+          Array.isArray(parsed.phrases) &&
+          Array.isArray(parsed.translations)
+        ) {
+          this.logger.debug(`✅ Parsed structured response for "${object}"`);
+          return parsed;
         }
       } catch (err) {
         this.logger.warn(
-          `⚠️ Response was not valid JSON even after cleaning. Returning fallback for "${object}".`,
+          `⚠️ Could not parse response as JSON for "${object}". Returning fallback.`,
         );
       }
 
-      return [
-        `A ${object} was mentioned in a conversation.`,
-        `Someone used the ${object} recently.`,
-      ];
+      return {
+        phrases: [
+          `This is a ${object}.`,
+          `The ${object} is on the table.`,
+        ],
+        translations:
+          language === 'pt'
+            ? ['Isto é um(a) ' + object + '.', 'O(a) ' + object + ' está na mesa.']
+            : [`This is a ${object}.`, `The ${object} is on the table.`],
+      };
     } catch (error) {
-      this.logger.error(
-        `❌ Error calling Ollama for "${object}": ${error.message}`,
-      );
-      return [
-        `This is a ${object}.`,
-        `The ${object} is being used.`,
-      ];
+      this.logger.error(`❌ Error calling Ollama: ${error.message}`);
+      return {
+        phrases: [`This is a ${object}.`, `The ${object} is being used.`],
+        translations:
+          language === 'pt'
+            ? ['Isto é um(a) ' + object + '.', 'O(a) ' + object + ' está sendo usado(a).']
+            : [`This is a ${object}.`, `The ${object} is being used.`],
+      };
     }
   }
 }

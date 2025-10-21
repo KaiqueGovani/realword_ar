@@ -2,64 +2,52 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
 
+[System.Serializable]
+public class SentenceResponse
+{
+    public string[] phrases;
+    public string[] translations;
+}
+
 public class TestBackend : MonoBehaviour
 {
-    [Header("Server")]
-    [SerializeField] private string serverUrl = "http://localhost:3000/sentences";
+    private string apiUrl = "http://localhost:3000/sentences";
 
-    [Header("Test data")]
-    [SerializeField] private string testObject = "mug";
-
-    public void SendTestRequest()
+    void Start()
     {
-        StartCoroutine(SendRequestCoroutine());
+        StartCoroutine(SendRequest("chair", "portuguese"));
     }
 
-    private IEnumerator SendRequestCoroutine()
+    IEnumerator SendRequest(string objectName, string language)
     {
-        string jsonBody = "{\"object\":\"" + EscapeJsonString(testObject) + "\"}";
-
-        UnityWebRequest request = new UnityWebRequest(serverUrl, "POST");
+        string jsonBody = $"{{\"object\":\"{objectName}\",\"language\":\"{language}\"}}";
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonBody);
-        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-        request.downloadHandler = new DownloadHandlerBuffer();
-        request.SetRequestHeader("Content-Type", "application/json");
 
-        Debug.Log("[TestBackend] Sending: " + jsonBody);
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
+        using (UnityWebRequest request = new UnityWebRequest(apiUrl, "POST"))
         {
-            string respText = request.downloadHandler.text;
-            Debug.Log("✅ Response raw: " + respText);
+            request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.SetRequestHeader("Content-Type", "application/json");
 
-            ResponseData resp = JsonUtility.FromJson<ResponseData>(respText);
-            if (resp != null && resp.sentences != null && resp.sentences.Length > 0)
+            yield return request.SendWebRequest();
+
+            if (request.result == UnityWebRequest.Result.Success)
             {
-                Debug.Log("[TestBackend] Parsed sentences:");
-                foreach (var s in resp.sentences)
-                    Debug.Log(" - " + s);
+                Debug.Log("✅ Request successful!");
+                Debug.Log("Raw Response: " + request.downloadHandler.text);
+
+                SentenceResponse response = JsonUtility.FromJson<SentenceResponse>(request.downloadHandler.text);
+
+                for (int i = 0; i < response.phrases.Length; i++)
+                {
+                    Debug.Log($"EN: {response.phrases[i]}");
+                    Debug.Log($"PT: {response.translations[i]}");
+                }
             }
             else
             {
-                Debug.LogWarning("[TestBackend] No sentences parsed (check server JSON format).");
+                Debug.LogError("❌ Request failed: " + request.error);
             }
         }
-        else
-        {
-            Debug.LogError("❌ Request error: " + request.error + " | httpCode: " + request.responseCode);
-        }
-    }
-
-    private string EscapeJsonString(string s)
-    {
-        return s.Replace("\\", "\\\\").Replace("\"", "\\\"");
-    }
-
-    [System.Serializable]
-    private class ResponseData
-    {
-        public string[] sentences;
     }
 }
