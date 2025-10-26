@@ -42,6 +42,14 @@ Este projeto apoia o *ODS 4 - Educação de Qualidade*, ao oferecer um recurso t
 
 ---
 
+## 💾 Sistema de Cache Local  
+
+- Foi implementado um sistema de **cache local** na Unity para armazenar nomes e frases geradas pela LLM, permitindo que o aplicativo funcione mesmo em modo offline.  
+- Os dados são armazenados em formato **JSON**, no diretório `Application.persistentDataPath` do dispositivo.  
+- Internamente, o cache utiliza um **dicionário em memória (`Dictionary<string, string>`)** para acesso rápido, e sincroniza as informações com o arquivo JSON sempre que novos dados são adicionados.  
+
+---
+
 ## ✍️ Autores  
 Desenvolvido por:  
 - Felipe Mariano  
