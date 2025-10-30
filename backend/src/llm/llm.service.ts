@@ -15,7 +15,7 @@ export class LlmService {
   public constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
 
   public async generateSentences(params: CreateSentenceDto): Promise<SentencesDto> {
-    const { object, language = 'en' } = params;
+    const { object, language } = params;
 
     const cacheKey = `${object}_${language}`;
     const cached = await this.cacheManager.get(cacheKey);
@@ -109,7 +109,7 @@ export class LlmService {
   }
 
   private generateFallbackSentences(params: CreateSentenceDto): SentencesDto {
-    const { object, language = 'en' } = params;
+    const { object, language } = params;
 
     return {
       phrases: [`This is a ${object}.`, `The ${object} is on the table.`],
@@ -121,7 +121,7 @@ export class LlmService {
   }
 
   private createPrompt(params: CreateSentenceDto): string {
-    const { object, language = 'en' } = params;
+    const { object, language } = params;
 
     return `You are an assistant for English learners who are absolute beginners.
             Generate exactly two extremely simple English sentences that include the noun "${object}".

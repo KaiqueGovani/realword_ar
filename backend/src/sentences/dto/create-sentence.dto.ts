@@ -7,5 +7,5 @@ export class CreateSentenceDto {
 
   @IsOptional()
   @IsString()
-  public language?: string;
+  public language?: string = 'português';
 }
