@@ -6,8 +6,7 @@ import axios from 'axios';
 @Injectable()
 export class LlmService {
   private readonly logger = new Logger(LlmService.name);
-  private readonly ollamaUrl =
-    process.env.OLLAMA_URL || 'http://localhost:11434/api/chat';
+  private readonly ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434/api/chat';
   private readonly model = process.env.OLLAMA_MODEL || 'phi3';
 
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
@@ -31,10 +30,7 @@ export class LlmService {
     return result;
   }
 
-  private async callOllama(
-    object: string,
-    language: string,
-  ): Promise<{ phrases: string[]; translations: string[] }> {
+  private async callOllama(object: string, language: string): Promise<{ phrases: string[]; translations: string[] }> {
     const prompt = `You are an assistant for English learners who are absolute beginners.
 Generate exactly two extremely simple English sentences that include the noun "${object}".
 Then, translate each sentence into ${language}.
@@ -58,15 +54,12 @@ Output ONLY a valid JSON object in this format:
         model: this.model,
         messages: [{ role: 'user', content: prompt }],
         stream: false,
-        options:{
-          temperature:0.2
-        }
+        options: {
+          temperature: 0.2,
+        },
       });
 
-      let text =
-        response.data.message?.content ||
-        response.data.response?.trim() ||
-        '';
+      const text = response.data.message?.content || response.data.response?.trim() || '';
 
       this.logger.debug(`🧠 LLM raw response for "${object}": ${text}`);
 
@@ -80,25 +73,16 @@ Output ONLY a valid JSON object in this format:
       try {
         const parsed = JSON.parse(cleaned);
 
-        if (
-          parsed &&
-          Array.isArray(parsed.phrases) &&
-          Array.isArray(parsed.translations)
-        ) {
+        if (parsed && Array.isArray(parsed.phrases) && Array.isArray(parsed.translations)) {
           this.logger.debug(`✅ Parsed structured response for "${object}"`);
           return parsed;
         }
       } catch (err) {
-        this.logger.warn(
-          `⚠️ Could not parse response as JSON for "${object}". Returning fallback.`,
-        );
+        this.logger.warn(`⚠️ Could not parse response as JSON for "${object}". Returning fallback.`);
       }
 
       return {
-        phrases: [
-          `This is a ${object}.`,
-          `The ${object} is on the table.`,
-        ],
+        phrases: [`This is a ${object}.`, `The ${object} is on the table.`],
         translations:
           language === 'pt'
             ? ['Isto é um(a) ' + object + '.', 'O(a) ' + object + ' está na mesa.']
