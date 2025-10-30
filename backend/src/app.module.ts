@@ -1,12 +1,17 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { APP_FILTER } from '@nestjs/core';
+import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 import { LlmModule } from './llm/llm.module';
 import { SentencesModule } from './sentences/sentences.module';
 
 @Module({
-  imports: [SentencesModule, LlmModule],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [SentryModule.forRoot(), SentencesModule, LlmModule],
+  controllers: [],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    },
+  ],
 })
 export class AppModule {}
