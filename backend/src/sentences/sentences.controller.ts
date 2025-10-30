@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 import { CreateSentenceDto } from './dto/create-sentence.dto';
 import { SentencesService } from './sentences.service';
 
@@ -8,14 +8,6 @@ export class SentencesController {
 
   @Post()
   public async create(@Body() body: CreateSentenceDto) {
-    if (!body || !body.object) {
-      throw new BadRequestException('Missing required field: object');
-    }
-
-    const object = body.object.trim();
-    const language = (body.language || 'en').trim().toLowerCase();
-
-    const result = await this.sentencesService.generateSentences(object, language);
-    return result;
+    return this.sentencesService.generateSentences(body);
   }
 }
