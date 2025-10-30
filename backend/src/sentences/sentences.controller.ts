@@ -1,13 +1,13 @@
-import { Body, Controller, Post, BadRequestException } from '@nestjs/common';
-import { SentencesService } from './sentences.service';
+import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
 import { CreateSentenceDto } from './dto/create-sentence.dto';
+import { SentencesService } from './sentences.service';
 
 @Controller('sentences')
 export class SentencesController {
-  constructor(private readonly sentencesService: SentencesService) {}
+  public constructor(private readonly sentencesService: SentencesService) {}
 
   @Post()
-  async create(@Body() body: CreateSentenceDto) {
+  public async create(@Body() body: CreateSentenceDto) {
     if (!body || !body.object) {
       throw new BadRequestException('Missing required field: object');
     }

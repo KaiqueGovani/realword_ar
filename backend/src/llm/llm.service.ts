@@ -10,9 +10,9 @@ export class LlmService {
   private readonly ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434/api/chat';
   private readonly model = process.env.OLLAMA_MODEL || 'phi3';
 
-  constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
+  public constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
 
-  async generateSentences(
+  public async generateSentences(
     object: string,
     language: string = 'en',
   ): Promise<{ phrases: string[]; translations: string[] }> {

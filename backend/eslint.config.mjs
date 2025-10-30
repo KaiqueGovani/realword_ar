@@ -1,6 +1,7 @@
 // @ts-check
 import eslint from '@eslint/js';
 import eslintConfigPrettier from 'eslint-config-prettier';
+import eslintPluginPrettier from 'eslint-plugin-prettier';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
@@ -44,6 +45,27 @@ export default tseslint.config(
           caughtErrorsIgnorePattern: '^_',
         },
       ],
+
+      // Exigir modificadores de acesso explícitos (public/private/protected)
+      '@typescript-eslint/explicit-member-accessibility': [
+        'warn',
+        {
+          accessibility: 'explicit',
+        },
+      ],
+
+      // Warning para identação incorreta (2 espaços)
+      '@typescript-eslint/indent': ['warn', 2],
+    },
+  },
+
+  // Prettier como regra do ESLint
+  {
+    plugins: {
+      prettier: eslintPluginPrettier,
+    },
+    rules: {
+      'prettier/prettier': 'warn',
     },
   },
 
