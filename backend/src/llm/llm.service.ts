@@ -34,54 +34,78 @@ export class LlmService {
 
   private async callOllama(params: CreateSentenceDto): Promise<SentencesDto> {
     const { object } = params;
-
     const prompt = this.createPrompt(params);
 
     try {
-      const response = await axios.post<LLMResponse>(this.ollamaUrl, {
-        model: this.model,
-        messages: [{ role: 'user', content: prompt }],
-        stream: false,
-        options: {
-          temperature: 0.2,
-        },
-      });
+      const rawResponse = await this.sendOllamaRequest(prompt);
+      const cleanedText = this.cleanResponse(rawResponse);
 
-      const text = response.data.message?.content || response.data.response?.trim() || '';
+      this.logger.debug(`🧩 Cleaned response: ${cleanedText}`);
 
-      this.logger.debug(`🧠 LLM raw response for "${object}": ${text}`);
+      const parsedResponse = this.parseResponse(cleanedText, object);
 
-      let cleaned = text.trim();
-      if (cleaned.startsWith('```')) {
-        cleaned = cleaned.replace(/```json|```/gi, '').trim();
+      if (parsedResponse) {
+        return parsedResponse;
       }
 
-      this.logger.debug(`🧩 Cleaned response: ${cleaned}`);
-
-      try {
-        const parsed: unknown = JSON.parse(cleaned);
-
-        if (
-          parsed &&
-          typeof parsed === 'object' &&
-          'phrases' in parsed &&
-          'translations' in parsed &&
-          Array.isArray(parsed.phrases) &&
-          Array.isArray(parsed.translations)
-        ) {
-          this.logger.debug(`✅ Parsed structured response for "${object}"`);
-          return parsed as SentencesDto;
-        }
-      } catch (_err) {
-        this.logger.warn(`⚠️ Could not parse response as JSON for "${object}". Returning fallback.`);
-      }
-
+      this.logger.warn(`⚠️ Could not parse response as JSON for "${object}". Returning fallback.`);
       return this.generateFallbackSentences(params);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`❌ Error calling Ollama: ${errorMessage}`);
       return this.generateFallbackSentences(params);
     }
+  }
+
+  private async sendOllamaRequest(prompt: string): Promise<string> {
+    const response = await axios.post<LLMResponse>(this.ollamaUrl, {
+      model: this.model,
+      messages: [{ role: 'user', content: prompt }],
+      stream: false,
+      options: {
+        temperature: 0.2,
+      },
+    });
+
+    return response.data.message?.content || response.data.response?.trim() || '';
+  }
+
+  private cleanResponse(rawText: string): string {
+    const text = rawText.trim();
+
+    if (text.startsWith('```')) {
+      return text.replace(/```json|```/gi, '').trim();
+    }
+
+    return text;
+  }
+
+  private parseResponse(text: string, object: string): SentencesDto | null {
+    this.logger.debug(`� LLM raw response for "${object}": ${text}`);
+
+    try {
+      const parsed: unknown = JSON.parse(text);
+
+      if (this.isValidSentencesDto(parsed)) {
+        this.logger.debug(`✅ Parsed structured response for "${object}"`);
+        return parsed as SentencesDto;
+      }
+
+      return null;
+    } catch (_err) {
+      return null;
+    }
+  }
+
+  private isValidSentencesDto(parsed: unknown): boolean {
+    return (
+      parsed !== null &&
+      typeof parsed === 'object' &&
+      'phrases' in parsed &&
+      'translations' in parsed &&
+      Array.isArray(parsed.phrases) &&
+      Array.isArray(parsed.translations)
+    );
   }
 
   private generateFallbackSentences(params: CreateSentenceDto): SentencesDto {
