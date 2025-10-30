@@ -6,7 +6,6 @@ export class SentencesService {
   constructor(private readonly llmService: LlmService) {}
 
   async generateSentences(object: string, language: string) {
-    const result = await this.llmService.generateSentences(object, language);
-    return result;
+    return this.llmService.generateSentences(object, language);
   }
 }
