@@ -81,7 +81,7 @@ export class LlmService {
   }
 
   private parseResponse(text: string, object: string): SentencesDto | null {
-    this.logger.debug(`� LLM raw response for "${object}": ${text}`);
+    this.logger.debug(`📝 LLM raw response for "${object}": ${text}`);
 
     try {
       const parsed: unknown = JSON.parse(text);
