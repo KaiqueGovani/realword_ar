@@ -1,13 +1,17 @@
 import { Module } from '@nestjs/common';
-import { CacheModule } from '@nestjs/cache-manager';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { SentencesModule } from './sentences/sentences.module';
+import { APP_FILTER } from '@nestjs/core';
+import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 import { LlmModule } from './llm/llm.module';
+import { SentencesModule } from './sentences/sentences.module';
 
 @Module({
-  imports: [SentencesModule, LlmModule, CacheModule.register({ isGlobal: true, ttl: 86400 })],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [SentryModule.forRoot(), SentencesModule, LlmModule],
+  controllers: [],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    },
+  ],
 })
 export class AppModule {}

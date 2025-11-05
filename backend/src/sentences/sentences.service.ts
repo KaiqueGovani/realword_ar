@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { LlmService } from '../llm/llm.service';
+import { CreateSentenceDto } from './dto/create-sentence.dto';
 
 @Injectable()
 export class SentencesService {
-  constructor(private readonly llmService: LlmService) {}
+  public constructor(private readonly llmService: LlmService) {}
 
-  async generateSentences(object: string, language: string) {
-    const result = await this.llmService.generateSentences(object, language);
-    return result;
+  public async generateSentences(params: CreateSentenceDto) {
+    return this.llmService.generateSentences(params);
   }
 }

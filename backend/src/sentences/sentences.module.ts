@@ -7,6 +7,6 @@ import { LlmService } from 'src/llm/llm.service';
 @Module({
   imports: [LlmModule],
   controllers: [SentencesController],
-  providers: [SentencesService, LlmService]
+  providers: [SentencesService, LlmService],
 })
 export class SentencesModule {}
