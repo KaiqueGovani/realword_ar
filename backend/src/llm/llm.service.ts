@@ -5,12 +5,15 @@ import type { Cache } from 'cache-manager';
 import { CreateSentenceDto } from 'src/sentences/dto/create-sentence.dto';
 import { SentencesDto } from 'src/sentences/dto/sentences.dto';
 import { LLMResponse } from './llm.interface';
+import { performance } from 'node:perf_hooks';
 
 @Injectable()
 export class LlmService {
   private readonly logger = new Logger(LlmService.name);
-  private readonly ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434/api/chat';
-  private readonly model = process.env.OLLAMA_MODEL || 'phi3';
+  private readonly googleModel = process.env.GOOGLE_MODEL || 'gemini-2.5-flash';
+  private readonly googleApiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || '';
+  private readonly apiVersion: 'v1' | 'v1beta' =
+    process.env.GOOGLE_API_VERSION === 'v1beta' ? 'v1beta' : 'v1';
 
   public constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
 
@@ -25,19 +28,20 @@ export class LlmService {
       return cached as SentencesDto;
     }
 
-    this.logger.debug(`🚀 Cache miss for "${cacheKey}" — calling Ollama...`);
-    const result = await this.callOllama(params);
+  this.logger.debug(`🚀 Cache miss for "${cacheKey}" — calling Google AI (Gemini)...`);
+    const result = await this.callGemini(params);
 
     await this.cacheManager.set(cacheKey, result, 86400);
     return result;
   }
 
-  private async callOllama(params: CreateSentenceDto): Promise<SentencesDto> {
+  private async callGemini(params: CreateSentenceDto): Promise<SentencesDto> {
     const { object } = params;
     const prompt = this.createPrompt(params);
 
     try {
-      const rawResponse = await this.sendOllamaRequest(prompt);
+      const { value: rawResponse, latencyMs } = await this.callWithLatency(() => this.sendGoogleRequest(prompt));
+      this.logger.debug(`⏱️ Gemini latency: ${latencyMs.toFixed(0)} ms`);
       const cleanedText = this.cleanResponse(rawResponse);
 
       this.logger.debug(`🧩 Cleaned response: ${cleanedText}`);
@@ -52,22 +56,77 @@ export class LlmService {
       return this.generateFallbackSentences(params);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`❌ Error calling Ollama: ${errorMessage}`);
+      this.logger.error(`❌ Error calling Google AI: ${errorMessage}`);
       return this.generateFallbackSentences(params);
     }
   }
 
-  private async sendOllamaRequest(prompt: string): Promise<string> {
-    const response = await axios.post<LLMResponse>(this.ollamaUrl, {
-      model: this.model,
-      messages: [{ role: 'user', content: prompt }],
-      stream: false,
-      options: {
+  private async sendGoogleRequest(prompt: string): Promise<string> {
+    if (!this.googleApiKey) {
+      throw new Error('Google API key not found. Set GOOGLE_API_KEY (or GEMINI_API_KEY) in your environment.');
+    }
+
+    const url = `https://generativelanguage.googleapis.com/${this.apiVersion}/models/${encodeURIComponent(
+      this.googleModel,
+    )}:generateContent`;
+
+    const body = this.buildRequestBody(prompt);
+
+    const response = await axios.post<LLMResponse>(url, body, {
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': this.googleApiKey,
+      },
+      timeout: 30000,
+    });
+    return this.extractText(response.data);
+  }
+
+  private async callWithLatency<T>(fn: () => Promise<T>): Promise<{ value: T; latencyMs: number }> {
+    const start = performance.now();
+    try {
+      const value = await fn();
+      const latencyMs = performance.now() - start;
+      return { value, latencyMs };
+    } catch (err) {
+      const latencyMs = performance.now() - start;
+      this.logger.warn(`⏱️ Gemini call failed after ${latencyMs.toFixed(0)} ms`);
+      throw err;
+    }
+  }
+
+  private buildRequestBody(prompt: string) {
+    return {
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: prompt }],
+        },
+      ],
+      generationConfig: {
         temperature: 0.2,
       },
-    });
+    } as const;
+  }
 
-    return response.data.message?.content || response.data.response?.trim() || '';
+  private extractText(data: LLMResponse): string {
+    const candidates = data?.candidates;
+    if (Array.isArray(candidates) && candidates.length > 0) {
+      const parts = candidates[0]?.content?.parts;
+      if (Array.isArray(parts) && parts.length > 0) {
+        const text = parts[0]?.text ?? '';
+        if (typeof text === 'string' && text.trim().length > 0) return text;
+      }
+    }
+
+    if (typeof data?.output_text === 'string' && data.output_text.trim().length > 0) {
+      return data.output_text;
+    }
+    if (typeof data?.text === 'string' && data.text.trim().length > 0) {
+      return data.text;
+    }
+
+    return '';
   }
 
   private cleanResponse(rawText: string): string {
