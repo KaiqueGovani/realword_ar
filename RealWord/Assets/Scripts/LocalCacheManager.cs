@@ -22,6 +22,10 @@ public class CacheData
         
         for (int i = 0; i < minCount; i++)
         {
+            if (dict.ContainsKey(keys[i]))
+            {
+                Debug.LogWarning($"[Cache] Duplicate key found: '{keys[i]}'. Overwriting previous value.");
+            }
             dict[keys[i]] = values[i];
         }
         return dict;
@@ -81,7 +85,11 @@ public class LocalCacheManager : MonoBehaviour
         }
         catch (System.Exception e)
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             Debug.LogError($"Erro ao salvar cache: {e.Message}\nStack trace: {e.StackTrace}");
+#else
+            Debug.LogError($"Erro ao salvar cache: {e.Message}");
+#endif
         }
     }
 
@@ -98,7 +106,11 @@ public class LocalCacheManager : MonoBehaviour
             }
             catch (System.Exception e)
             {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 Debug.LogError($"Erro ao carregar cache: {e.Message}\nStack trace: {e.StackTrace}");
+#else
+                Debug.LogError($"Erro ao carregar cache: {e.Message}");
+#endif
                 // Keep existing in-memory entries on load failure to preserve current session data
             }
         }
