@@ -13,7 +13,14 @@ public class CacheData
     public Dictionary<string, string> ToDictionary()
     {
         Dictionary<string, string> dict = new Dictionary<string, string>();
-        for (int i = 0; i < keys.Count && i < values.Count; i++)
+        int minCount = System.Math.Min(keys.Count, values.Count);
+        
+        if (keys.Count != values.Count)
+        {
+            Debug.LogWarning($"[Cache] CacheData inconsistency: keys count ({keys.Count}) != values count ({values.Count}). Using {minCount} entries.");
+        }
+        
+        for (int i = 0; i < minCount; i++)
         {
             dict[keys[i]] = values[i];
         }
@@ -92,7 +99,7 @@ public class LocalCacheManager : MonoBehaviour
             catch (System.Exception e)
             {
                 Debug.LogError($"Erro ao carregar cache: {e.Message}\nStack trace: {e.StackTrace}");
-                entries = new Dictionary<string, string>(); // Initialize to empty if load fails
+                // Keep existing in-memory entries on load failure to preserve current session data
             }
         }
         else
