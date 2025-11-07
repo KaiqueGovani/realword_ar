@@ -43,8 +43,12 @@ public class CacheData
         values.Clear();
         foreach (var kvp in dict)
         {
-            keys.Add(kvp.Key);
-            values.Add(kvp.Value);
+            // Skip null or empty keys for consistency
+            if (!string.IsNullOrEmpty(kvp.Key))
+            {
+                keys.Add(kvp.Key);
+                values.Add(kvp.Value);
+            }
         }
     }
 }
@@ -62,6 +66,12 @@ public class LocalCacheManager : MonoBehaviour
 
     public void AddToCache(string key, string value)
     {
+        if (string.IsNullOrEmpty(key))
+        {
+            Debug.LogWarning("[Cache] Tentativa de adicionar entrada com chave nula ou vazia. Operação ignorada.");
+            return;
+        }
+        
         entries[key] = value;
         SaveCache();
         Debug.Log($"[Cache] Salvou '{key}' → '{value}'");
