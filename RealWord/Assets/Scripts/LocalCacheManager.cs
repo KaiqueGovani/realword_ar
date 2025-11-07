@@ -125,10 +125,8 @@ public class LocalCacheManager : MonoBehaviour
                     AddToCache(key, result);
                     return result;
                 }
-                else
-                {
-                    Debug.LogWarning($"[Cache] Online fetch returned null or empty for key '{key}'. Not caching.");
-                }
+                
+                Debug.LogWarning($"[Cache] Online fetch returned null or empty for key '{key}'. Not caching.");
             }
             else
             {
@@ -144,7 +142,7 @@ public class LocalCacheManager : MonoBehaviour
         result = GetFromCache(key);
         
         // Log error if both online fetch and cache retrieval failed
-        if (result == null)
+        if (string.IsNullOrEmpty(result))
         {
             Debug.LogError($"[Cache] Falha ao obter dados para '{key}': sem conexão à internet e sem cache disponível.");
         }
