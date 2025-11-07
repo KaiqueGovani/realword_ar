@@ -7,11 +7,11 @@ public class AndroidTTS : MonoBehaviour
     AndroidJavaObject tts;
     bool ready;
 
-    // Idioma atual
     private string currentLanguageCode = "pt_BR";
     public string CurrentLanguageCode => currentLanguageCode;
 
-    // Dicionário com os idiomas disponíveis
+    private const string CONTEXT = "AndroidTTS";
+
     public static Dictionary<string, LanguageInfo> AvailableLanguages = new Dictionary<string, LanguageInfo>()
     {
         { "pt_BR", new LanguageInfo("Português (Brasil)", "pt", "BR") },
@@ -54,26 +54,44 @@ public class AndroidTTS : MonoBehaviour
     void Awake()
     {
 #if UNITY_ANDROID && !UNITY_EDITOR
-        var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
-        activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
-
-        var listener = new OnInitListener(status =>
+        try
         {
-            ready = (status == 0);
-            if (ready)
-            {
-                SetLanguage(currentLanguageCode);
-                tts.Call<int>("setPitch", 1.0f);
-                tts.Call<int>("setSpeechRate", 1.0f);
-                Debug.Log($"✅ TTS inicializado com idioma: {currentLanguageCode}");
-            }
-            else
-            {
-                Debug.LogWarning("❌ TTS init failed");
-            }
-        });
+            var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+            activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
 
-        tts = new AndroidJavaObject("android.speech.tts.TextToSpeech", activity, listener);
+            var listener = new OnInitListener(status =>
+            {
+                ready = (status == 0);
+                if (ready)
+                {
+                    SetLanguage(currentLanguageCode);
+                    tts.Call<int>("setPitch", 1.0f);
+                    tts.Call<int>("setSpeechRate", 1.0f);
+                    
+                    AppLogger.Info($"TTS inicializado com sucesso - Idioma: {currentLanguageCode}", CONTEXT);
+                    AppLogger.Breadcrumb("TTS inicializado", "system", new Dictionary<string, string>
+                    {
+                        { "language", currentLanguageCode }
+                    });
+                }
+                else
+                {
+                    AppLogger.Error($"Falha ao inicializar TTS - Status: {status}", CONTEXT, new Dictionary<string, object>
+                    {
+                        { "status", status }
+                    });
+                }
+            });
+
+            tts = new AndroidJavaObject("android.speech.tts.TextToSpeech", activity, listener);
+        }
+        catch (System.Exception ex)
+        {
+            AppLogger.Exception(ex, CONTEXT);
+        }
+#else
+        AppLogger.Info("TTS em modo simulação (Editor)", CONTEXT);
+        ready = true;
 #endif
     }
 
@@ -85,7 +103,11 @@ public class AndroidTTS : MonoBehaviour
     {
         if (!AvailableLanguages.ContainsKey(languageKey))
         {
-            Debug.LogError($"❌ Idioma não reconhecido: {languageKey}");
+            AppLogger.Error($"Idioma não reconhecido: {languageKey}", CONTEXT, new Dictionary<string, object>
+            {
+                { "requestedLanguage", languageKey },
+                { "availableLanguages", string.Join(", ", AvailableLanguages.Keys) }
+            });
             return;
         }
 
@@ -95,29 +117,48 @@ public class AndroidTTS : MonoBehaviour
 #if UNITY_ANDROID && !UNITY_EDITOR
         if (!ready || tts == null)
         {
-            Debug.LogWarning("⚠️ TTS não está pronto!");
+            AppLogger.Warning("TTS não está pronto para trocar idioma", CONTEXT);
             return;
         }
 
-        AndroidJavaObject locale = new AndroidJavaObject("java.util.Locale", langInfo.LanguageCode, langInfo.CountryCode);
-        int result = tts.Call<int>("setLanguage", locale);
+        try
+        {
+            AndroidJavaObject locale = new AndroidJavaObject("java.util.Locale", langInfo.LanguageCode, langInfo.CountryCode);
+            int result = tts.Call<int>("setLanguage", locale);
 
-        if (result >= 0)
-        {
-            Debug.Log($"✅ Idioma alterado para: {langInfo.DisplayName}");
-        }
-        else if (result == -1)
-        {
-            Debug.LogError($"❌ Dados do idioma {langInfo.DisplayName} não disponíveis! Instale o pacote de idioma.");
-        }
-        else if (result == -2)
-        {
-            Debug.LogError($"❌ Idioma {langInfo.DisplayName} não é suportado!");
-        }
+            if (result >= 0)
+            {
+                AppLogger.Info($"Idioma alterado para: {langInfo.DisplayName}", CONTEXT);
+            }
+            else if (result == -1)
+            {
+                AppLogger.Error($"Dados do idioma {langInfo.DisplayName} não disponíveis", CONTEXT, new Dictionary<string, object>
+                {
+                    { "language", languageKey },
+                    { "errorCode", result },
+                    { "suggestion", "Instale o pacote de idioma no dispositivo" }
+                });
+            }
+            else if (result == -2)
+            {
+                AppLogger.Error($"Idioma {langInfo.DisplayName} não é suportado pelo dispositivo", CONTEXT, new Dictionary<string, object>
+                {
+                    { "language", languageKey },
+                    { "errorCode", result }
+                });
+            }
 
-        locale?.Dispose();
+            locale?.Dispose();
+        }
+        catch (System.Exception ex)
+        {
+            AppLogger.Exception(ex, CONTEXT, new Dictionary<string, object>
+            {
+                { "targetLanguage", languageKey }
+            });
+        }
 #else
-        Debug.Log($"🎤 [SIMULAÇÃO] Idioma alterado para: {langInfo.DisplayName}");
+        AppLogger.Info($"[SIMULAÇÃO] Idioma alterado para: {langInfo.DisplayName}", CONTEXT);
 #endif
     }
 
@@ -126,39 +167,64 @@ public class AndroidTTS : MonoBehaviour
 #if UNITY_ANDROID && !UNITY_EDITOR
         if (!ready || tts == null)
         {
-            Debug.LogWarning("⚠️ TTS not ready");
+            AppLogger.Warning("TTS não está pronto para falar", CONTEXT, new Dictionary<string, object>
+            {
+                { "ready", ready },
+                { "ttsNull", tts == null }
+            });
             return;
         }
 
-        tts.Call<int>("setPitch", pitch);
-        tts.Call<int>("setSpeechRate", rate);
-
-        int sdk = new AndroidJavaClass("android.os.Build$VERSION").GetStatic<int>("SDK_INT");
-        int queueMode = new AndroidJavaClass("android.speech.tts.TextToSpeech")
-            .GetStatic<int>(flush ? "QUEUE_FLUSH" : "QUEUE_ADD");
-
-        if (sdk >= 21)
+        try
         {
-            using (var bundle = new AndroidJavaObject("android.os.Bundle"))
+            tts.Call<int>("setPitch", pitch);
+            tts.Call<int>("setSpeechRate", rate);
+
+            int sdk = new AndroidJavaClass("android.os.Build$VERSION").GetStatic<int>("SDK_INT");
+            int queueMode = new AndroidJavaClass("android.speech.tts.TextToSpeech")
+                .GetStatic<int>(flush ? "QUEUE_FLUSH" : "QUEUE_ADD");
+
+            if (sdk >= 21)
             {
-                tts.Call<int>("speak", text, queueMode, bundle, System.Guid.NewGuid().ToString());
+                using (var bundle = new AndroidJavaObject("android.os.Bundle"))
+                {
+                    tts.Call<int>("speak", text, queueMode, bundle, System.Guid.NewGuid().ToString());
+                }
             }
-        }
-        else
-        {
-            tts.Call<int>("speak", text, queueMode, null);
-        }
+            else
+            {
+                tts.Call<int>("speak", text, queueMode, null);
+            }
 
-        Debug.Log($"🔊 Falando em {currentLanguageCode}: '{text}'");
+            AppLogger.Info($"TTS falando em {currentLanguageCode}", CONTEXT);
+        }
+        catch (System.Exception ex)
+        {
+            AppLogger.Exception(ex, CONTEXT, new Dictionary<string, object>
+            {
+                { "text", text },
+                { "language", currentLanguageCode },
+                { "pitch", pitch },
+                { "rate", rate }
+            });
+        }
 #else
-        Debug.Log($"🎤 [SIMULAÇÃO] Falaria em {currentLanguageCode}: '{text}'");
+        AppLogger.Info($"[SIMULAÇÃO] Falaria em {currentLanguageCode}: '{text}'", CONTEXT);
 #endif
     }
 
     public void Stop()
     {
 #if UNITY_ANDROID && !UNITY_EDITOR
-        tts?.Call<int>("stop");
+        try
+        {
+            tts?.Call<int>("stop");
+            AppLogger.Info("TTS parado", CONTEXT);
+        }
+        catch (System.Exception ex)
+        {
+            AppLogger.Exception(ex, CONTEXT);
+        }
 #endif
     }
 
@@ -171,8 +237,13 @@ public class AndroidTTS : MonoBehaviour
             tts?.Call<int>("shutdown");
             tts?.Dispose();
             activity?.Dispose();
+            
+            AppLogger.Info("TTS destruído e recursos liberados", CONTEXT);
         }
-        catch { }
+        catch (System.Exception ex)
+        {
+            AppLogger.Exception(ex, CONTEXT);
+        }
 #endif
     }
 }

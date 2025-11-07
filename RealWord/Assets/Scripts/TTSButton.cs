@@ -1,7 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Sentry;
-using Sentry.Unity;
 using TMPro;
 using UnityEngine;
 
@@ -11,7 +9,7 @@ public class TTSButton : MonoBehaviour
     public AndroidTTS tts;
     public TMP_InputField inputField;
     public TMP_Dropdown languageDropdown;
-    public TextMeshProUGUI languageIndicator; // Texto que mostra o idioma atual
+    public TextMeshProUGUI languageIndicator;
 
     [Header("Configuração")]
     [TextArea(3, 10)]
@@ -21,25 +19,26 @@ public class TTSButton : MonoBehaviour
     public bool limparFila = true;
 
     private List<string> languageKeys;
+    private const string CONTEXT = "TTSButton";
 
     void Start()
     {
         ConfigurarDropdown();
         AtualizarIndicador();
+
+        AppLogger.Info("TTSButton inicializado", CONTEXT);
     }
 
     void ConfigurarDropdown()
     {
         if (languageDropdown == null)
         {
-            Debug.LogWarning("⚠️ Dropdown não configurado!");
+            AppLogger.Warning("Dropdown não configurado", CONTEXT);
             return;
         }
 
-        // Limpa as opções existentes
         languageDropdown.ClearOptions();
 
-        // Cria a lista de opções
         List<TMP_Dropdown.OptionData> options = new List<TMP_Dropdown.OptionData>();
         languageKeys = new List<string>();
 
@@ -49,23 +48,22 @@ public class TTSButton : MonoBehaviour
             languageKeys.Add(lang.Key);
         }
 
-        // Adiciona as opções ao dropdown
         languageDropdown.AddOptions(options);
-
-        // Define o valor inicial (Português Brasil = index 0)
         languageDropdown.value = 0;
-
-        // Adiciona listener para quando o valor mudar
         languageDropdown.onValueChanged.AddListener(OnLanguageChanged);
 
-        Debug.Log($"✅ Dropdown configurado com {options.Count} idiomas");
+        AppLogger.Info($"Dropdown configurado com {options.Count} idiomas", CONTEXT);
     }
 
     void OnLanguageChanged(int index)
     {
         if (index < 0 || index >= languageKeys.Count)
         {
-            Debug.LogError($"❌ Índice inválido: {index}");
+            AppLogger.Error($"Índice de idioma inválido: {index}", CONTEXT, new Dictionary<string, object>
+            {
+                { "index", index },
+                { "maxIndex", languageKeys.Count - 1 }
+            });
             return;
         }
 
@@ -74,6 +72,8 @@ public class TTSButton : MonoBehaviour
         {
             tts.SetLanguage(selectedLanguage);
             AtualizarIndicador();
+
+            AppLogger.Breadcrumb($"Idioma alterado para {selectedLanguage}", "user_interaction");
         }
     }
 
@@ -91,13 +91,11 @@ public class TTSButton : MonoBehaviour
 
     public void Falar()
     {
-        SentrySdk.CaptureMessage("[INFO] Botão 'Falar' clicado");
-        Debug.Log("===== BOTÃO CLICADO =====");
+        AppLogger.Breadcrumb("Botão Falar clicado", "user_interaction");
 
         if (tts == null)
         {
-            SentrySdk.CaptureMessage("[ERROR] TTS não configurado!");
-            Debug.LogError("TTS não configurado!");
+            AppLogger.Error("TTS não configurado", CONTEXT);
             return;
         }
 
@@ -106,25 +104,40 @@ public class TTSButton : MonoBehaviour
         if (inputField != null && !string.IsNullOrEmpty(inputField.text))
         {
             textoParaFalar = inputField.text;
-            SentrySdk.CaptureMessage($"[INFO] Texto do InputField: {textoParaFalar}");
-            Debug.Log($"Texto do InputField: {textoParaFalar}");
+            AppLogger.Info($"Usando texto do InputField: {textoParaFalar}", CONTEXT);
         }
         else
         {
-            SentrySdk.CaptureMessage($"[INFO] Usando texto padrão: {textoParaFalar}");
-            Debug.Log($"Usando texto padrão: {textoParaFalar}");
+            AppLogger.Info($"Usando texto padrão: {textoParaFalar}", CONTEXT);
         }
 
         if (string.IsNullOrEmpty(textoParaFalar))
         {
-            SentrySdk.CaptureMessage("[WARN] Texto vazio!");
-            Debug.LogWarning("Texto vazio!");
+            AppLogger.Warning("Tentativa de falar com texto vazio", CONTEXT);
             return;
         }
 
-        SentrySdk.CaptureMessage($"[INFO] Falando: {textoParaFalar}");
-        Debug.Log($"Falando: {textoParaFalar}");
-        tts.Speak(textoParaFalar, limparFila, pitch, velocidade);
+        try
+        {
+            tts.Speak(textoParaFalar, limparFila, pitch, velocidade);
+
+            AppLogger.Breadcrumb($"TTS executado: {textoParaFalar.Substring(0, System.Math.Min(50, textoParaFalar.Length))}...",
+                "tts_action",
+                new Dictionary<string, string>
+                {
+                    { "language", tts.CurrentLanguageCode },
+                    { "textLength", textoParaFalar.Length.ToString() }
+                }
+            );
+        }
+        catch (System.Exception ex)
+        {
+            AppLogger.Exception(ex, CONTEXT, new Dictionary<string, object>
+            {
+                { "texto", textoParaFalar },
+                { "idioma", tts.CurrentLanguageCode }
+            });
+        }
     }
 
     public void Parar()
@@ -132,6 +145,7 @@ public class TTSButton : MonoBehaviour
         if (tts != null)
         {
             tts.Stop();
+            AppLogger.Breadcrumb("TTS parado", "user_interaction");
         }
     }
 
@@ -140,6 +154,7 @@ public class TTSButton : MonoBehaviour
         if (inputField != null)
         {
             inputField.text = "";
+            AppLogger.Info("Campo de texto limpo", CONTEXT);
         }
     }
 }
