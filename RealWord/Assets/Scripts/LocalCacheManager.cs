@@ -22,10 +22,15 @@ public class CacheData
         
         for (int i = 0; i < minCount; i++)
         {
-            if (dict.ContainsKey(keys[i]))
+            // Skip null or empty keys
+            if (string.IsNullOrEmpty(keys[i]))
             {
-                Debug.LogWarning($"[Cache] Duplicate key found: '{keys[i]}'. Overwriting previous value.");
+                Debug.LogWarning($"[Cache] Skipping null or empty key at index {i}.");
+                continue;
             }
+            
+            // Note: Dictionary indexer will overwrite if key exists
+            // This is intentional behavior - last occurrence wins
             dict[keys[i]] = values[i];
         }
         return dict;
