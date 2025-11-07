@@ -1,3 +1,4 @@
+@ -1,120 +0,0 @@
 # ===================================
 # Unity Generated Files
 # ===================================
@@ -99,8 +100,8 @@ crashlytics-build.properties
 # ===================================
 
 # Arquivos de backup e output gerados
-**/RealWord*/
 **/realword_BackUpThisFolder_ButDontShipItWithYourGame/
+**/realword_mog_BackUpThisFolder_ButDontShipItWithYourGame/
 **/Il2CppOutputProject/
 **/_Generated*/
 *_Generated.cpp
