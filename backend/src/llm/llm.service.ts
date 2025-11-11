@@ -31,7 +31,7 @@ export class LlmService {
   this.logger.debug(`🚀 Cache miss for "${cacheKey}" — calling Google AI (Gemini)...`);
     const result = await this.callGemini(params);
 
-    await this.cacheManager.set(cacheKey, result, 86400);
+    await this.cacheManager.set(cacheKey, result);
     return result;
   }
 
