@@ -39,6 +39,10 @@ public class YoloDetector_IE : MonoBehaviour
     [Tooltip("Minimum confidence threshold for detections")]
     [Range(0.1f, 0.9f)]
     public float confidenceThreshold = 0.25f;
+    
+    [Tooltip("Maximum boxes to process per frame (0 = all, lower = faster). YOLO typically outputs 8400 boxes.")]
+    [Range(0, 8400)]
+    public int maxBoxesToProcess = 2000;
 
     [Header("Debug Settings")]
     public bool enableDebugMode = true;
@@ -57,6 +61,7 @@ public class YoloDetector_IE : MonoBehaviour
     // Performance tracking
     private float inferenceStartTime;
     private bool isInferenceRunning = false;
+    private bool isProcessingDetections = false;
 
     void Start()
     {
@@ -135,8 +140,8 @@ public class YoloDetector_IE : MonoBehaviour
 
     private void InitializePostProcessor()
     {
-        postProcessor = new YoloPostProcessor(labels, confidenceThreshold);
-        Debug.Log($"[YoloDetector_IE] Post-processor inicializado (threshold: {confidenceThreshold})");
+        postProcessor = new YoloPostProcessor(labels, confidenceThreshold, maxBoxesToProcess);
+        Debug.Log($"[YoloDetector_IE] Post-processor inicializado (threshold: {confidenceThreshold}, maxBoxes: {maxBoxesToProcess})");
     }
 
     private void InitializeDebugUI()
@@ -167,7 +172,7 @@ public class YoloDetector_IE : MonoBehaviour
             debugUI.UpdateFPS();
             
             // Update inference state indicator
-            if (isInferenceRunning)
+            if (isInferenceRunning || isProcessingDetections)
             {
                 debugUI.UpdateInferenceState("Running", Color.yellow);
             }
@@ -195,9 +200,9 @@ public class YoloDetector_IE : MonoBehaviour
 
     private bool CanRunInference()
     {
-        if (isInferenceRunning)
+        if (isInferenceRunning || isProcessingDetections)
         {
-            // Skip if previous inference is still running
+            // Skip if previous inference or detection processing is still running
             return false;
         }
 
@@ -257,11 +262,24 @@ public class YoloDetector_IE : MonoBehaviour
             debugUI.UpdateInferenceState("Scheduled", Color.yellow);
         }
 
-        // Use coroutine for delayed processing instead of async readback
+        // Get output tensor
+        var outputTensor = worker.PeekOutput() as Tensor<float>;
+        if (outputTensor == null)
+        {
+            if (labelText != null) labelText.text = "Sem output.";
+            if (enableDebugMode && debugUI != null)
+            {
+                debugUI.SetInferenceError();
+                debugUI.UpdateInferenceState("Error: No Output", Color.red);
+            }
+            isInferenceRunning = false;
+            return;
+        }
+
+        // Use async readback for GPU backends
         if (useAsyncReadback)
         {
-            // Schedule output processing for next frame (allows GPU to finish)
-            StartCoroutine(ProcessInferenceDelayed());
+            ProcessInferenceAsync(outputTensor);
         }
         else
         {
@@ -271,75 +289,47 @@ public class YoloDetector_IE : MonoBehaviour
                 debugUI.UpdateInferenceState("Sync Readback", Color.red);
             }
 
-            var outputTensor = worker.PeekOutput() as Tensor<float>;
-            if (outputTensor == null)
-            {
-                if (labelText != null) labelText.text = "Sem output.";
-                if (enableDebugMode && debugUI != null)
-                {
-                    debugUI.SetInferenceError();
-                    debugUI.UpdateInferenceState("Error: No Output", Color.red);
-                }
-                isInferenceRunning = false;
-                return;
-            }
-
             using var cpuCopy = outputTensor.ReadbackAndClone();
             ProcessInferenceResult(cpuCopy);
             isInferenceRunning = false;
         }
     }
 
-    private System.Collections.IEnumerator ProcessInferenceDelayed()
+    /// <summary>
+    /// Process inference result asynchronously using ReadbackAndCloneAsync
+    /// This prevents blocking the main thread while waiting for GPU readback
+    /// </summary>
+    private async void ProcessInferenceAsync(Tensor<float> outputTensor)
     {
         // Update debug state
         if (enableDebugMode && debugUI != null)
         {
-            debugUI.UpdateInferenceState("Waiting GPU", Color.magenta);
-            yield return null;  // Wait one frame to update Debug UI
-        }
-        
-        // Update debug state
-        if (enableDebugMode && debugUI != null)
-        {
-            debugUI.UpdateInferenceState("Reading Back", Color.cyan);
-            yield return null;  // Wait one frame to update Debug UI
+            debugUI.UpdateInferenceState("Async Readback", Color.cyan);
         }
 
-        // Now get the output (GPU should be done by now)
-        var outputTensor = worker.PeekOutput() as Tensor<float>;
-        
-        if (outputTensor == null)
-        {
-            Debug.LogError("[YoloDetector_IE] Output tensor is null after delay!");
-            if (labelText != null) labelText.text = "Sem output.";
-            if (enableDebugMode && debugUI != null)
-            {
-                debugUI.SetInferenceError();
-                debugUI.UpdateInferenceState("Error: Null Tensor", Color.red);
-            }
-            isInferenceRunning = false;
-            yield break;
-        }
-        
-        // Synchronous readback (but GPU is done, so it's fast)
         Tensor<float> cpuCopy = null;
         try
         {
-            // Update debug state
-            if (enableDebugMode && debugUI != null)
-            {
-                debugUI.UpdateInferenceState("Processing", Color.yellow);
-            }
-
-            UnityEngine.Profiling.Profiler.BeginSample("YOLO_Readback_SYNC");
-            cpuCopy = outputTensor.ReadbackAndClone();
+            UnityEngine.Profiling.Profiler.BeginSample("YOLO_Readback_ASYNC");
+            
+            // Asynchronously read back the tensor data from GPU to CPU
+            // This does not block the main thread
+            cpuCopy = await outputTensor.ReadbackAndCloneAsync();
+            
             UnityEngine.Profiling.Profiler.EndSample();
             
             if (cpuCopy != null)
             {
+                // Update debug state
+                if (enableDebugMode && debugUI != null)
+                {
+                    debugUI.UpdateInferenceState("Processing", Color.yellow);
+                }
+
+                UnityEngine.Profiling.Profiler.BeginSample("YOLO_ProcessInferenceResult_ASYNC");
                 ProcessInferenceResult(cpuCopy);
-                
+                UnityEngine.Profiling.Profiler.EndSample();
+
                 // Update debug state on success
                 if (enableDebugMode && debugUI != null)
                 {
@@ -348,7 +338,7 @@ public class YoloDetector_IE : MonoBehaviour
             }
             else
             {
-                Debug.LogError("[YoloDetector_IE] Readback returned null!");
+                Debug.LogError("[YoloDetector_IE] Async readback returned null!");
                 if (labelText != null) labelText.text = "Readback falhou";
                 if (enableDebugMode && debugUI != null)
                 {
@@ -358,39 +348,66 @@ public class YoloDetector_IE : MonoBehaviour
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"[YoloDetector_IE] Error in delayed inference: {e.Message}");
+            Debug.LogError($"[YoloDetector_IE] Error in async inference: {e.Message}");
             if (labelText != null) labelText.text = $"Erro: {e.Message}";
             if (enableDebugMode && debugUI != null)
             {
                 debugUI.UpdateInferenceState($"Error: {e.Message.Substring(0, System.Math.Min(20, e.Message.Length))}", Color.red);
             }
+            
+            // Clean up if error occurs
+            cpuCopy?.Dispose();
         }
         finally
-        {
-            cpuCopy?.Dispose();
+        {   
+            // Don't dispose cpuCopy here - it's now managed by incremental processing
+            // It will be disposed when processing completes or a new inference starts
             isInferenceRunning = false;
         }
     }
 
-    private void ProcessInferenceResult(Tensor<float> cpuCopy)
+    private async void ProcessInferenceResult(Tensor<float> cpuCopy)
     {
         // Update debug info
         UpdateDebugInfo(cpuCopy);
 
-        // Process detections
-        var result = postProcessor.ProcessDetections(cpuCopy);
+        // Mark as processing to prevent new inference from starting
+        isProcessingDetections = true;
 
-        // Update detection count debug
-        if (enableDebugMode && debugUI != null && Time.frameCount % 10 == 0)
+        try
         {
-            int numBoxes = cpuCopy.shape[2];
-            debugUI.UpdateDetectionCount(result.TotalDetections, numBoxes);
+            UnityEngine.Profiling.Profiler.BeginSample("YOLO_ProcessDetections_Async");
+            
+            // Process detections asynchronously - this will spread work across multiple frames
+            var result = await postProcessor.ProcessDetectionsAsync(cpuCopy);
+            
+            UnityEngine.Profiling.Profiler.EndSample();
+
+            // Update UI with final result
+            if (labelText != null)
+            {
+                labelText.text = postProcessor.FormatDetectionText(result);
+            }
+
+            // Update detection count debug
+            if (enableDebugMode && debugUI != null)
+            {
+                int numBoxes = cpuCopy.shape[2];
+                debugUI.UpdateDetectionCount(result.TotalDetections, numBoxes);
+                
+                Debug.Log($"[YoloDetector_IE] Processing complete. Best: {result.BestLabel} ({result.BestScore:F2}), Total detections: {result.TotalDetections}/{numBoxes}");
+            }
         }
-
-        // Display result
-        if (labelText != null)
+        catch (System.Exception e)
         {
-            labelText.text = postProcessor.FormatDetectionText(result);
+            Debug.LogError($"[YoloDetector_IE] Error in detection processing: {e.Message}");
+            if (labelText != null) labelText.text = $"Erro no processamento: {e.Message}";
+        }
+        finally
+        {
+            // Clean up tensor
+            cpuCopy?.Dispose();
+            isProcessingDetections = false;
         }
     }
 
@@ -424,7 +441,7 @@ public class YoloDetector_IE : MonoBehaviour
     public void SetConfidenceThreshold(float threshold)
     {
         confidenceThreshold = Mathf.Clamp(threshold, 0.1f, 0.9f);
-        postProcessor = new YoloPostProcessor(labels, confidenceThreshold);
+        postProcessor = new YoloPostProcessor(labels, confidenceThreshold, maxBoxesToProcess);
         Debug.Log($"[YoloDetector_IE] Confidence threshold atualizado para: {confidenceThreshold}");
         
         // Update debug UI
@@ -432,6 +449,13 @@ public class YoloDetector_IE : MonoBehaviour
         {
             debugUI.UpdateAsyncMode(useAsyncReadback, inferenceInterval);
         }
+    }
+    
+    public void SetMaxBoxesToProcess(int maxBoxes)
+    {
+        maxBoxesToProcess = Mathf.Clamp(maxBoxes, 0, 8400);
+        postProcessor = new YoloPostProcessor(labels, confidenceThreshold, maxBoxesToProcess);
+        Debug.Log($"[YoloDetector_IE] Max boxes to process atualizado para: {maxBoxesToProcess}");
     }
 
     void OnDestroy()
