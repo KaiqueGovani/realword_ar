@@ -19,6 +19,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "eval": "node -r ts-node/register ./scripts/eval/run-eval.ts",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org felipe-mariano --project node-nestjs ./dist && sentry-cli sourcemaps upload --org felipe-mariano --project node-nestjs ./dist"
   },
   "dependencies": {
@@ -36,7 +37,8 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
