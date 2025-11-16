@@ -62,22 +62,27 @@ public class YoloDebugUI : MonoBehaviour
     {
         if (debugFont == null)
         {
-            debugFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            debugFont = Resources.Load<Font>("MobileARTemplateAssets/UI/Fonts/Inter-Regular");
+            if (debugFont == null)
+            {
+                Debug.LogWarning("[YoloDebugUI] Could not find Inter-Regular font at Assets/MobileARTemplateAssets/UI/Fonts/Inter-Regular.ttf. Using Arial as fallback.");
+                debugFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            }
         }
     }
 
     private void CreateDebugTexts()
     {
-        fpsText = CreateDebugText("FPS: --", new Vector2(-350, 250));
-        modelInfoText = CreateDebugText("Model: Loading...", new Vector2(-350, 220));
-        asyncModeText = CreateDebugText("Async: --", new Vector2(-350, 190));
-        inferenceStateText = CreateDebugText("State: Idle", new Vector2(-350, 160));
-        detectionCountText = CreateDebugText("Detections: 0", new Vector2(-350, 130));
-        inferenceTimeText = CreateDebugText("Inference: -- ms", new Vector2(-350, 100));
-        tensorInfoText = CreateDebugText("Tensor: --", new Vector2(-350, 70));
-        webcamInfoText = CreateDebugText("Webcam: --", new Vector2(-350, 40));
-        labelsInfoText = CreateDebugText("Labels: Loading...", new Vector2(-350, 10));
-        pathInfoText = CreateDebugText("Path: --", new Vector2(-350, -20));
+        fpsText = CreateDebugText("FPS: --", new Vector2(-50, 500));
+        modelInfoText = CreateDebugText("Model: Loading...", new Vector2(-50, 470));
+        asyncModeText = CreateDebugText("Async: --", new Vector2(-50, 440));
+        inferenceStateText = CreateDebugText("State: Idle", new Vector2(-50, 410));
+        detectionCountText = CreateDebugText("Detections: 0", new Vector2(-50, 380));
+        inferenceTimeText = CreateDebugText("Inference: -- ms", new Vector2(-50, 350));
+        tensorInfoText = CreateDebugText("Tensor: --", new Vector2(-50, 320));
+        webcamInfoText = CreateDebugText("Webcam: --", new Vector2(-50, 290));
+        labelsInfoText = CreateDebugText("Labels: Loading...", new Vector2(-50, 260));
+        pathInfoText = CreateDebugText("Path: --", new Vector2(-50, 230));
     }
 
     private Text CreateDebugText(string initialText, Vector2 position)
@@ -88,10 +93,11 @@ public class YoloDebugUI : MonoBehaviour
         Text textComponent = textGO.AddComponent<Text>();
         textComponent.text = initialText;
         textComponent.font = debugFont;
-        textComponent.fontSize = 14;
+        textComponent.fontSize = 16;
         textComponent.color = Color.white;
         textComponent.fontStyle = FontStyle.Bold;
         textComponent.horizontalOverflow = HorizontalWrapMode.Overflow;
+        textComponent.verticalOverflow = VerticalWrapMode.Overflow;
 
         // Add outline for better visibility
         Outline outline = textGO.AddComponent<Outline>();

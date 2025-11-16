@@ -151,8 +151,12 @@ public class YoloDetector_IE : MonoBehaviour
     {
         if (!enableDebugMode) return;
 
-        // Create or get debug UI component
-        debugUI = gameObject.AddComponent<YoloDebugUI>();
+        // Try to get existing YoloDebugUI from the scene (any GameObject), otherwise add to this GameObject
+        debugUI = FindObjectOfType<YoloDebugUI>();
+        if (debugUI == null)
+        {
+            debugUI = gameObject.AddComponent<YoloDebugUI>();
+        }
         debugUI.Initialize();
 
         // Update initial debug info

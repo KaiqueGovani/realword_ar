@@ -11,7 +11,7 @@ public class BackendRequestManager : MonoBehaviour
 {
     private const string API_URL = "https://realword.kaique.net/sentences";
     private const string CONTEXT = "BackendRequestManager";
-    private const string DEFAULT_LANGUAGE = "português";
+    private const string DEFAULT_LANGUAGE = "português brasileiro";
     private const string LANGUAGE_PREF_KEY = "RealWord_TargetLanguage";
 
     [Header("Dependencies")]

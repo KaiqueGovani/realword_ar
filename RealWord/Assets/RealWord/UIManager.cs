@@ -391,7 +391,7 @@ public class UIManager : MonoBehaviour
         TTSManager ttsManager = FindObjectOfType<TTSManager>();
         if (ttsManager != null)
         {
-            ttsManager.PlayCurrentPhrase(phraseData.objectName, false); // Play original phrase
+            ttsManager.PlayBothLanguages(phraseData.objectName); // Play english phrase
         }
         else
         {
