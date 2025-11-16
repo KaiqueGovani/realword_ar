@@ -63,6 +63,9 @@ public class YoloDetector_IE : MonoBehaviour
     private bool isInferenceRunning = false;
     private bool isProcessingDetections = false;
 
+    // Detection event for external listeners
+    public event System.Action<string, float> OnObjectDetected;
+
     void Start()
     {
         if (!ValidateComponents())
@@ -387,6 +390,12 @@ public class YoloDetector_IE : MonoBehaviour
             if (labelText != null)
             {
                 labelText.text = postProcessor.FormatDetectionText(result);
+            }
+
+            // Fire detection event if object was detected
+            if (result.HasDetection && OnObjectDetected != null)
+            {
+                OnObjectDetected.Invoke(result.BestLabel, result.BestScore);
             }
 
             // Update detection count debug

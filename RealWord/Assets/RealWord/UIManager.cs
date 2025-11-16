@@ -1,69 +1,83 @@
 using UnityEngine;
-using UnityEngine.UI; // Necessário para UI (Button, Image, etc.)
-using TMPro;          // Necessário para TextMeshPro
-using System.Collections; // Necessário para Coroutines (esconder snackbars)
+using UnityEngine.UI; // Necessï¿½rio para UI (Button, Image, etc.)
+using TMPro;          // Necessï¿½rio para TextMeshPro
+using System.Collections; // Necessï¿½rio para Coroutines (esconder snackbars)
 
 /// <summary>
-/// Gerencia toda a interface gráfica (UI) do aplicativo RealWord.
-/// Controla a troca de painéis, preenche textos e gerencia estados de UI.
+/// Gerencia toda a interface grï¿½fica (UI) do aplicativo RealWord.
+/// Controla a troca de painï¿½is, preenche textos e gerencia estados de UI.
 /// </summary>
 public class UIManager : MonoBehaviour
 {
-    // --- PAINÉIS PRINCIPAIS (As "Telas") ---
-    [Header("Painéis de Tela")]
+    // --- PAINï¿½IS PRINCIPAIS (As "Telas") ---
+    [Header("Painï¿½is de Tela")]
     public GameObject welcomePanel; // A "Tela Inicial"
-    public GameObject mainPanel;    // A "Tela Principal" (com a câmera)
+    public GameObject mainPanel;    // A "Tela Principal" (com a cï¿½mera)
     public GameObject menuPanel;    // A tela de Menu
-    public GameObject settingsPanel; // A tela de Configurações
-    public GameObject historyPanel;  // A tela de Histórico
+    public GameObject settingsPanel; // A tela de Configuraï¿½ï¿½es
+    public GameObject historyPanel;  // A tela de Histï¿½rico
 
-    // --- BOTÕES ---
-    [Header("Botões Principais")]
-    public Button startButton;      // Botão "Começar" da tela inicial
+    // --- BOTï¿½ES ---
+    [Header("Botï¿½es Principais")]
+    public Button startButton;      // Botï¿½o "Comeï¿½ar" da tela inicial
 
-    // Botões do MainPanel (que você criou no topo)
+    // Botï¿½es do MainPanel (que vocï¿½ criou no topo)
     public Button mainHistoryButton;
     public Button mainSettingsButton;
 
-    // Botões dos Painéis de Menu
-    // (Adicione referências para os botões "Voltar", "Tutorial", etc. se precisar)
+    // Botï¿½es dos Painï¿½is de Menu
+    // (Adicione referï¿½ncias para os botï¿½es "Voltar", "Tutorial", etc. se precisar)
     // Ex: public Button menuBackButton;
     // Ex: public Button settingsTutorialButton;
 
 
-    // --- GRUPO DE DETECÇÃO (Começa desativado) ---
-    [Header("Grupo de Detecção (Overlay)")]
-    public GameObject detectionOverlayGroup; // O "pai" de toda a UI de detecção
+    // --- GRUPO DE DETECï¿½ï¿½O (Comeï¿½a desativado) ---
+    [Header("Grupo de Detecï¿½ï¿½o (Overlay)")]
+    public GameObject detectionOverlayGroup; // O "pai" de toda a UI de detecï¿½ï¿½o
 
     // --- ELEMENTOS DA TAG FLUTUANTE ---
     [Header("Tag Flutuante (AR)")]
     public GameObject floatingTagObject; // O objeto "Floating_Tag_BG"
     public TextMeshProUGUI floatingTagText; // O texto "Chair"
 
-    // --- ELEMENTOS DO CARTÃO DE RESULTADO ---
-    [Header("Cartão de Resultado Detalhado")]
+    // --- ELEMENTOS DO CARTï¿½O DE RESULTADO ---
+    [Header("Cartï¿½o de Resultado Detalhado")]
     public GameObject resultCardObject;      // O "Result_Card_BG" (azul-escuro)
     public TextMeshProUGUI originalTextMain;     // "Cadeira"
-    public TextMeshProUGUI originalTextDetail;   // "A cadeira é marrom"
+    public TextMeshProUGUI originalTextDetail;   // "A cadeira ï¿½ marrom"
     public TextMeshProUGUI translatedTextMain;   // "Chair"
     public TextMeshProUGUI translatedTextDetail; // "The chair is brown"
-    public Button ttsButton;               // O botão azul de áudio
+    public Button ttsButton;               // O botï¿½o azul de ï¿½udio
+
+    // --- CAROUSEL NAVIGATION ---
+    [Header("Carousel Navigation")]
+    public Button phrasePrevButton;  // Reference to Prev_Arrow GameObject
+    public Button phraseNextButton;  // Reference to Next_Arrow GameObject
+    public TextMeshProUGUI phraseIndexText; // Display "1/2" or similar
+
+    // --- OVERLAY BUTTON ---
+    [Header("Overlay Button")]
+    public Button showOverlayButton; // Button that appears when object detected
+
+    // --- DEPENDENCIES ---
+    [Header("Dependencies")]
+    public DetectionResultManager detectionResultManager;
 
     // --- SNACKBARS DE CONECTIVIDADE ---
     [Header("Snackbars de Conectividade")]
-    // (Arraste os 3 objetos de dentro do seu "ConnectionStatus_Group" para cá)
+    // (Arraste os 3 objetos de dentro do seu "ConnectionStatus_Group" para cï¿½)
     public GameObject offlineSnackbar;
     public GameObject reconnectingSnackbar;
     public GameObject onlineSnackbar;
 
 
     /// <summary>
-    /// Chamado quando o script é iniciado.
-    /// Define o estado inicial da UI e configura os botões.
+    /// Chamado quando o script ï¿½ iniciado.
+    /// Define o estado inicial da UI e configura os botï¿½es.
     /// </summary>
     void Start()
     {
-        // Define o estado inicial da UI (só a tela de boas-vindas é visível)
+        // Define o estado inicial da UI (sï¿½ a tela de boas-vindas ï¿½ visï¿½vel)
         welcomePanel.SetActive(true);
         mainPanel.SetActive(false);
         menuPanel.SetActive(false);
@@ -72,20 +86,43 @@ public class UIManager : MonoBehaviour
         detectionOverlayGroup.SetActive(false);
         HideAllSnackbars();
 
-        // Configura os "listeners" dos botões (o que acontece ao clicar)
+        // Configura os "listeners" dos botï¿½es (o que acontece ao clicar)
         startButton.onClick.AddListener(StartApplication);
         ttsButton.onClick.AddListener(OnTTSButtonPressed);
-        mainHistoryButton.onClick.AddListener(ShowMenu); // Ex: Botão do menu no MainPanel
-        mainSettingsButton.onClick.AddListener(ShowMenu); // Ex: Botão de config no MainPanel
+        mainHistoryButton.onClick.AddListener(ShowMenu); // Ex: Botï¿½o do menu no MainPanel
+        mainSettingsButton.onClick.AddListener(ShowMenu); // Ex: Botï¿½o de config no MainPanel
 
-        // TODO: Conectar os outros botões (Voltar, Tutorial, etc.)
+        // Carousel navigation buttons
+        if (phrasePrevButton != null)
+        {
+            phrasePrevButton.onClick.AddListener(OnPreviousPhraseClicked);
+        }
+        if (phraseNextButton != null)
+        {
+            phraseNextButton.onClick.AddListener(OnNextPhraseClicked);
+        }
+
+        // Overlay button
+        if (showOverlayButton != null)
+        {
+            showOverlayButton.onClick.AddListener(OnShowOverlayClicked);
+            showOverlayButton.gameObject.SetActive(false); // Initially hidden
+        }
+
+        // Find DetectionResultManager if not assigned
+        if (detectionResultManager == null)
+        {
+            detectionResultManager = FindObjectOfType<DetectionResultManager>();
+        }
+
+        // TODO: Conectar os outros botï¿½es (Voltar, Tutorial, etc.)
         // Ex: menuBackButton.onClick.AddListener(ShowMainPanel);
     }
 
-    // --- MÉTODOS PÚBLICOS (para outros scripts chamarem) ---
+    // --- Mï¿½TODOS Pï¿½BLICOS (para outros scripts chamarem) ---
 
     /// <summary>
-    /// Mostra o resultado da detecção na tela.
+    /// Mostra o resultado da detecï¿½ï¿½o na tela.
     /// </summary>
     public void ShowDetectionResult(string tagText, string origMain, string origDetail, string transMain, string transDetail)
     {
@@ -101,7 +138,154 @@ public class UIManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Esconde o overlay de detecção.
+    /// Updates the phrase carousel display with current index and total phrases
+    /// </summary>
+    public void UpdatePhraseCarousel(int currentIndex, int totalPhrases, string origMain, string origDetail, string transMain, string transDetail)
+    {
+        // Update texts
+        if (floatingTagText != null)
+        {
+            floatingTagText.text = origMain; // Object name
+        }
+        if (originalTextMain != null)
+        {
+            originalTextMain.text = origMain; // Object name
+        }
+        if (originalTextDetail != null)
+        {
+            originalTextDetail.text = origDetail; // Current phrase
+        }
+        if (translatedTextMain != null)
+        {
+            translatedTextMain.text = transMain; // Translation (object name or phrase)
+        }
+        if (translatedTextDetail != null)
+        {
+            translatedTextDetail.text = transDetail; // Current translation
+        }
+
+        // Update phrase index indicator
+        if (phraseIndexText != null)
+        {
+            if (totalPhrases > 1)
+            {
+                phraseIndexText.text = $"{currentIndex + 1}/{totalPhrases}";
+                phraseIndexText.gameObject.SetActive(true);
+            }
+            else
+            {
+                phraseIndexText.gameObject.SetActive(false);
+            }
+        }
+
+        // Show/hide and enable/disable navigation buttons based on phrase count
+        bool hasMultiplePhrases = totalPhrases > 1;
+        if (phrasePrevButton != null)
+        {
+            phrasePrevButton.gameObject.SetActive(hasMultiplePhrases);
+            phrasePrevButton.interactable = hasMultiplePhrases;
+        }
+        if (phraseNextButton != null)
+        {
+            phraseNextButton.gameObject.SetActive(hasMultiplePhrases);
+            phraseNextButton.interactable = hasMultiplePhrases;
+        }
+
+        // Show the overlay
+        if (detectionOverlayGroup != null)
+        {
+            detectionOverlayGroup.SetActive(true);
+        }
+    }
+
+    /// <summary>
+    /// Shows loading state while waiting for API response
+    /// </summary>
+    public void ShowLoadingState(string objectName, bool isLoading = true, string errorMessage = null)
+    {
+        if (detectionOverlayGroup != null)
+        {
+            detectionOverlayGroup.SetActive(true);
+        }
+
+        if (!string.IsNullOrEmpty(errorMessage))
+        {
+            // Show error
+            if (originalTextDetail != null)
+            {
+                originalTextDetail.text = $"Erro: {errorMessage}";
+            }
+            if (translatedTextDetail != null)
+            {
+                translatedTextDetail.text = "";
+            }
+        }
+        else if (isLoading)
+        {
+            // Show loading
+            if (floatingTagText != null)
+            {
+                floatingTagText.text = objectName;
+            }
+            if (originalTextMain != null)
+            {
+                originalTextMain.text = objectName;
+            }
+            if (originalTextDetail != null)
+            {
+                originalTextDetail.text = "Carregando...";
+            }
+            if (translatedTextDetail != null)
+            {
+                translatedTextDetail.text = "Loading...";
+            }
+        }
+
+        // Hide and disable carousel controls during loading
+        if (phraseIndexText != null)
+        {
+            phraseIndexText.gameObject.SetActive(false);
+        }
+        if (phrasePrevButton != null)
+        {
+            phrasePrevButton.gameObject.SetActive(false);
+            phrasePrevButton.interactable = false;
+        }
+        if (phraseNextButton != null)
+        {
+            phraseNextButton.gameObject.SetActive(false);
+            phraseNextButton.interactable = false;
+        }
+    }
+
+    /// <summary>
+    /// Shows or hides the overlay button
+    /// </summary>
+    public void ShowOverlayButton(bool show)
+    {
+        if (showOverlayButton != null)
+        {
+            showOverlayButton.gameObject.SetActive(show);
+        }
+    }
+
+    /// <summary>
+    /// Sets the enabled/disabled state of carousel navigation buttons
+    /// </summary>
+    public void SetCarouselButtonsEnabled(bool enabled)
+    {
+        if (phrasePrevButton != null)
+        {
+            phrasePrevButton.interactable = enabled;
+        }
+        if (phraseNextButton != null)
+        {
+            phraseNextButton.interactable = enabled;
+        }
+    }
+
+    /// <summary>
+    /// Esconde o overlay de detecï¿½ï¿½o.
     /// </summary>
     public void HideDetectionResult()
     {
@@ -129,7 +313,7 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    // --- MÉTODOS DE NAVEGAÇÃO (para os botões chamarem) ---
+    // --- Mï¿½TODOS DE NAVEGAï¿½ï¿½O (para os botï¿½es chamarem) ---
 
     /// <summary>
     /// Chamado pelo `startButton`. Esconde a tela de boas-vindas e mostra a principal.
@@ -165,7 +349,7 @@ public class UIManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Mostra a tela de Configurações.
+    /// Mostra a tela de Configuraï¿½ï¿½es.
     /// </summary>
     public void ShowSettings()
     {
@@ -174,7 +358,7 @@ public class UIManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Mostra a tela de Histórico.
+    /// Mostra a tela de Histï¿½rico.
     /// </summary>
     public void ShowHistory()
     {
@@ -182,26 +366,81 @@ public class UIManager : MonoBehaviour
         historyPanel.SetActive(true);
     }
 
-    // --- LISTENERS DE AÇÃO ---
+    // --- LISTENERS DE Aï¿½ï¿½O ---
 
     /// <summary>
     /// Chamado pelo `ttsButton`.
     /// </summary>
     private void OnTTSButtonPressed()
     {
-        Debug.Log("Botão TTS (Áudio) pressionado!");
-        // TODO: Chamar seu script de áudio aqui.
+        if (detectionResultManager == null)
+        {
+            Debug.LogWarning("DetectionResultManager not assigned. Cannot play TTS.");
+            return;
+        }
+
+        // Get current phrase data
+        PhraseData phraseData = detectionResultManager.GetCurrentPhraseData(null);
+        if (phraseData == null)
+        {
+            Debug.LogWarning("No phrase data available for TTS playback.");
+            return;
+        }
+
+        // Use TTSManager if available, otherwise log
+        TTSManager ttsManager = FindObjectOfType<TTSManager>();
+        if (ttsManager != null)
+        {
+            ttsManager.PlayCurrentPhrase(phraseData.objectName, false); // Play original phrase
+        }
+        else
+        {
+            Debug.LogWarning("TTSManager not found. Cannot play audio.");
+        }
+    }
+
+    /// <summary>
+    /// Called when previous phrase button is clicked
+    /// </summary>
+    private void OnPreviousPhraseClicked()
+    {
+        if (detectionResultManager != null)
+        {
+            detectionResultManager.ShowPreviousPhrase();
+        }
+    }
+
+    /// <summary>
+    /// Called when next phrase button is clicked
+    /// </summary>
+    private void OnNextPhraseClicked()
+    {
+        if (detectionResultManager != null)
+        {
+            detectionResultManager.ShowNextPhrase();
+        }
+    }
+
+    /// <summary>
+    /// Called when show overlay button is clicked
+    /// </summary>
+    private void OnShowOverlayClicked()
+    {
+        if (detectionResultManager != null)
+        {
+            detectionResultManager.SelectObjectForOverlay(); // Uses highest confidence
+        }
     }
 
 
-    // --- MÉTODOS AUXILIARES (para os snackbars) ---
+    // --- Mï¿½TODOS AUXILIARES (para os snackbars) ---
 
     private void ShowSnackbar(GameObject snackbar, float duration)
     {
         snackbar.SetActive(true);
         if (duration > 0)
         {
-            // Esconde o snackbar após 'duration' segundos
+            // Esconde o snackbar apï¿½s 'duration' segundos
             StartCoroutine(HideSnackbarAfterTime(snackbar, duration));
         }
     }
@@ -220,7 +459,7 @@ public class UIManager : MonoBehaviour
     }
 }
 
-// Enum para facilitar o controle do status de conexão
+// Enum para facilitar o controle do status de conexï¿½o
 public enum ConnectionStatus
 {
     Online,
