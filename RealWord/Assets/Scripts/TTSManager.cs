@@ -174,13 +174,36 @@ public class TTSManager : MonoBehaviour
         StopPlayback();
 
         // Start the coroutine to play both languages
-        currentPlaybackCoroutine = StartCoroutine(PlayBothLanguagesCoroutine(objectName));
+        currentPlaybackCoroutine = StartCoroutine(PlayBothLanguagesCoroutine(objectName, null));
+    }
+
+    /// <summary>
+    /// Plays a dual-language sequence for a specific history entry.
+    /// </summary>
+    /// <param name="phraseData">Phrase data stored in history.</param>
+    public void PlayHistoryEntry(PhraseData phraseData)
+    {
+        if (phraseData == null)
+        {
+            AppLogger.Warning("History entry is empty. Cannot play audio.", CONTEXT);
+            return;
+        }
+
+        if (androidTTS == null)
+        {
+            AppLogger.Warning("AndroidTTS not available. Cannot play audio.", CONTEXT);
+            return;
+        }
+
+        // Stop any ongoing playback before starting the history entry
+        StopPlayback();
+        currentPlaybackCoroutine = StartCoroutine(PlayBothLanguagesCoroutine(null, phraseData));
     }
 
     /// <summary>
     /// Coroutine that plays translation in target language first, then original phrase in English
     /// </summary>
-    private IEnumerator PlayBothLanguagesCoroutine(string objectName)
+    private IEnumerator PlayBothLanguagesCoroutine(string objectName, PhraseData overridePhraseData)
     {
         if (androidTTS == null)
         {
@@ -188,18 +211,23 @@ public class TTSManager : MonoBehaviour
             yield break;
         }
 
-        if (detectionResultManager == null)
-        {
-            AppLogger.Warning("DetectionResultManager not available. Cannot get phrase data.", CONTEXT);
-            yield break;
-        }
+        PhraseData phraseData = overridePhraseData;
 
-        // Get current phrase data
-        PhraseData phraseData = detectionResultManager.GetCurrentPhraseData(objectName);
         if (phraseData == null)
         {
-            AppLogger.Warning($"No phrase data available for object '{objectName ?? "current"}'", CONTEXT);
-            yield break;
+            if (detectionResultManager == null)
+            {
+                AppLogger.Warning("DetectionResultManager not available. Cannot get phrase data.", CONTEXT);
+                yield break;
+            }
+
+            // Get current phrase data
+            phraseData = detectionResultManager.GetCurrentPhraseData(objectName);
+            if (phraseData == null)
+            {
+                AppLogger.Warning($"No phrase data available for object '{objectName ?? "current"}'", CONTEXT);
+                yield break;
+            }
         }
 
         // Validate both texts are available

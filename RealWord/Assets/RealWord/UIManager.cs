@@ -1,4 +1,6 @@
 using UnityEngine;
+using System;
+using System.Collections.Generic;
 using UnityEngine.UI; // Necess�rio para UI (Button, Image, etc.)
 using TMPro;          // Necess�rio para TextMeshPro
 using System.Collections; // Necess�rio para Coroutines (esconder snackbars)
@@ -16,6 +18,19 @@ public class UIManager : MonoBehaviour
     public GameObject menuPanel;    // A tela de Menu
     public GameObject settingsPanel; // A tela de Configura��es
     public GameObject historyPanel;  // A tela de Hist�rico
+    [Header("History Settings")]
+    [Tooltip("Quantidade maxima de itens exibidos no painel de historico durante a sessao")]
+    public int maxHistoryEntries = 10;
+
+    private Transform historyListContainer;
+    private GameObject historyItemTemplate;
+    private Button historyCloseButton;
+    private readonly List<HistoryEntry> historyEntries = new List<HistoryEntry>();
+    private readonly List<GameObject> activeHistoryItems = new List<GameObject>();
+    private string lastHistoryEntryKey;
+    private bool historyUIInitialized;
+    private TTSManager cachedTtsManager;
+
 
     // --- BOT�ES ---
     [Header("Bot�es Principais")]
@@ -89,7 +104,7 @@ public class UIManager : MonoBehaviour
         // Configura os "listeners" dos bot�es (o que acontece ao clicar)
         startButton.onClick.AddListener(StartApplication);
         ttsButton.onClick.AddListener(OnTTSButtonPressed);
-        mainHistoryButton.onClick.AddListener(ShowMenu); // Ex: Bot�o do menu no MainPanel
+        mainHistoryButton.onClick.AddListener(ShowHistory); // Ex: Bot�o do menu no MainPanel
         mainSettingsButton.onClick.AddListener(ShowMenu); // Ex: Bot�o de config no MainPanel
 
         // Carousel navigation buttons
@@ -115,10 +130,241 @@ public class UIManager : MonoBehaviour
             detectionResultManager = FindObjectOfType<DetectionResultManager>();
         }
 
+        EnsureHistoryUI();
+        BindMenuHistoryButton();
+
         // TODO: Conectar os outros bot�es (Voltar, Tutorial, etc.)
         // Ex: menuBackButton.onClick.AddListener(ShowMainPanel);
     }
 
+    public void AddHistoryEntry(PhraseData phraseData)
+    {
+        if (phraseData == null)
+        {
+            return;
+        }
+
+        if (maxHistoryEntries <= 0)
+        {
+            maxHistoryEntries = 1;
+        }
+
+        string entryKey = $"{phraseData.objectName}_{phraseData.index}_{phraseData.translation}";
+        if (entryKey == lastHistoryEntryKey)
+        {
+            return;
+        }
+
+        lastHistoryEntryKey = entryKey;
+
+        var entry = new HistoryEntry
+        {
+            phraseData = ClonePhraseData(phraseData),
+            timestamp = DateTime.Now
+        };
+
+        historyEntries.Add(entry);
+        if (historyEntries.Count > maxHistoryEntries)
+        {
+            historyEntries.RemoveAt(0);
+        }
+
+        RefreshHistoryUI();
+    }
+
+    private void RefreshHistoryUI()
+    {
+        if (!EnsureHistoryUI())
+        {
+            return;
+        }
+
+        ClearHistoryItems();
+
+        foreach (HistoryEntry entry in historyEntries)
+        {
+            GameObject itemInstance = Instantiate(historyItemTemplate, historyListContainer);
+            itemInstance.SetActive(true);
+            ConfigureHistoryItem(itemInstance, entry);
+            activeHistoryItems.Add(itemInstance);
+        }
+
+        if (historyItemTemplate != null)
+        {
+            historyItemTemplate.SetActive(false);
+        }
+    }
+
+    private void ClearHistoryItems()
+    {
+        foreach (GameObject item in activeHistoryItems)
+        {
+            if (item != null)
+            {
+                Destroy(item);
+            }
+        }
+
+        activeHistoryItems.Clear();
+    }
+
+    private void ConfigureHistoryItem(GameObject itemObject, HistoryEntry entry)
+    {
+        if (itemObject == null || entry == null || entry.phraseData == null)
+        {
+            return;
+        }
+
+        TextMeshProUGUI summaryText = null;
+        Transform textTransform = itemObject.transform.Find("Text (TMP)");
+        if (textTransform != null)
+        {
+            summaryText = textTransform.GetComponent<TextMeshProUGUI>();
+        }
+        if (summaryText == null)
+        {
+            summaryText = itemObject.GetComponentInChildren<TextMeshProUGUI>();
+        }
+
+        if (summaryText != null)
+        {
+            summaryText.text = $"{entry.phraseData.objectName} -> {entry.phraseData.translation}";
+        }
+
+        HistoryEntry capturedEntry = entry;
+        Button rowButton = itemObject.GetComponent<Button>();
+        if (rowButton != null)
+        {
+            rowButton.onClick.RemoveAllListeners();
+            rowButton.onClick.AddListener(() => PlayHistoryEntry(capturedEntry));
+        }
+
+        Transform listenTransform = itemObject.transform.Find("Ouvir");
+        if (listenTransform != null)
+        {
+            Button listenButton = listenTransform.GetComponent<Button>();
+            if (listenButton != null)
+            {
+                listenButton.onClick.RemoveAllListeners();
+                listenButton.onClick.AddListener(() => PlayHistoryEntry(capturedEntry));
+            }
+        }
+
+        Transform deleteTransform = itemObject.transform.Find("Excluir");
+        if (deleteTransform != null)
+        {
+            Button deleteButton = deleteTransform.GetComponent<Button>();
+            if (deleteButton != null)
+            {
+                deleteButton.onClick.RemoveAllListeners();
+            }
+            deleteTransform.gameObject.SetActive(false);
+        }
+    }
+
+    private void PlayHistoryEntry(HistoryEntry entry)
+    {
+        if (entry == null || entry.phraseData == null)
+        {
+            return;
+        }
+
+        if (cachedTtsManager == null)
+        {
+            cachedTtsManager = FindObjectOfType<TTSManager>();
+        }
+
+        if (cachedTtsManager == null)
+        {
+            Debug.LogWarning("TTSManager not found. Cannot play history entry.");
+            return;
+        }
+
+        PhraseData phraseData = ClonePhraseData(entry.phraseData);
+        cachedTtsManager.PlayHistoryEntry(phraseData);
+    }
+
+    private PhraseData ClonePhraseData(PhraseData source)
+    {
+        if (source == null)
+        {
+            return null;
+        }
+
+        return new PhraseData
+        {
+            objectName = source.objectName,
+            phrase = source.phrase,
+            translation = source.translation,
+            index = source.index,
+            totalPhrases = source.totalPhrases
+        };
+    }
+
+    private bool EnsureHistoryUI()
+    {
+        if (historyUIInitialized && historyListContainer != null && historyItemTemplate != null)
+        {
+            return true;
+        }
+
+        if (historyPanel == null)
+        {
+            Debug.LogWarning("History panel is not assigned.");
+            return false;
+        }
+
+        historyListContainer = historyPanel.transform.Find("Button_Container");
+        if (historyListContainer == null)
+        {
+            Debug.LogWarning("History list container not found (expected child named Button_Container).");
+            return false;
+        }
+
+        Transform templateTransform = historyListContainer.Find("History_Item");
+        if (templateTransform == null)
+        {
+            Debug.LogWarning("History item template not found (expected child named History_Item).");
+            return false;
+        }
+
+        historyItemTemplate = templateTransform.gameObject;
+        historyItemTemplate.SetActive(false);
+
+        historyCloseButton = historyPanel.transform.Find("Button")?.GetComponent<Button>();
+        if (historyCloseButton != null)
+        {
+            historyCloseButton.onClick.RemoveAllListeners();
+            historyCloseButton.onClick.AddListener(ShowMainPanel);
+        }
+
+        historyUIInitialized = true;
+        return true;
+    }
+
+    private void BindMenuHistoryButton()
+    {
+        if (menuPanel == null)
+        {
+            return;
+        }
+
+        foreach (Button button in menuPanel.GetComponentsInChildren<Button>(true))
+        {
+            if (button != null && button.gameObject.name == "History_Button")
+            {
+                button.onClick.AddListener(ShowHistory);
+                break;
+            }
+        }
+    }
+
+    [Serializable]
+    private class HistoryEntry
+    {
+        public PhraseData phraseData;
+        public DateTime timestamp;
+    }
     // --- M�TODOS P�BLICOS (para outros scripts chamarem) ---
 
     /// <summary>
@@ -362,8 +608,12 @@ public class UIManager : MonoBehaviour
     /// </summary>
     public void ShowHistory()
     {
+        mainPanel.SetActive(false);
         menuPanel.SetActive(false); // Esconde o menu
+        settingsPanel.SetActive(false);
+
         historyPanel.SetActive(true);
+        RefreshHistoryUI();
     }
 
     // --- LISTENERS DE A��O ---

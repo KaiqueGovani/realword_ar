@@ -296,15 +296,25 @@ public class DetectionResultManager : MonoBehaviour
         // Update UI
         if (uiManager != null)
         {
+            PhraseData currentPhrase = new PhraseData
+            {
+                objectName = objectName,
+                phrase = phrase,
+                translation = translation,
+                index = currentIndex,
+                totalPhrases = data.phrases.Length
+            };
+
             uiManager.UpdatePhraseCarousel(
-                currentIndex,
-                data.phrases.Length,
-                objectName, // Main text (object name)
-                phrase,     // Detail text (phrase)
-                translation, // Translated main
-                translation  // Translated detail (same as main for now)
+                currentPhrase.index,
+                currentPhrase.totalPhrases,
+                currentPhrase.objectName,
+                currentPhrase.phrase,
+                currentPhrase.translation,
+                currentPhrase.translation
             );
-            
+            uiManager.AddHistoryEntry(currentPhrase);
+
             // Update carousel button states
             UpdateCarouselButtonStates(objectName, currentIndex, data.phrases.Length);
         }
