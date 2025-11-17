@@ -3,6 +3,13 @@ import { IsString } from 'class-validator';
 
 export class SentencesDto {
   @ApiProperty({
+    description: 'Translation of the object in the target language',
+    example: 'chair',
+  })
+  @IsString()
+  public objectTranslation: string;
+
+  @ApiProperty({
     description: 'Array of generated sentences in the target language',
     example: ['Esta é uma cadeira confortável', 'A cadeira está na sala'],
     type: [String],
