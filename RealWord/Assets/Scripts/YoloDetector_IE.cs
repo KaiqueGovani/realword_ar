@@ -1,6 +1,7 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
+﻿using System.Collections.Generic;
 using Unity.InferenceEngine;
+using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
 /// Main YOLO object detection component using Unity Inference Engine
@@ -39,7 +40,14 @@ public class YoloDetector_IE : MonoBehaviour
     [Tooltip("Minimum confidence threshold for detections")]
     [Range(0.1f, 0.9f)]
     public float confidenceThreshold = 0.25f;
-    
+
+    [Header("Bounding Boxes")]
+    public BoundingBoxDrawer drawer;
+
+    [Tooltip("Limite máximo de caixas exibidas na tela (0 = todas)")]
+    public int maxDetections = 1;
+
+
     [Tooltip("Maximum boxes to process per frame (0 = all, lower = faster). YOLO typically outputs 8400 boxes.")]
     [Range(0, 8400)]
     public int maxBoxesToProcess = 2000;
@@ -395,6 +403,26 @@ public class YoloDetector_IE : MonoBehaviour
             {
                 labelText.text = postProcessor.FormatDetectionText(result);
             }
+
+            // ==========================
+            // DESENHAR BOUNDING BOXES
+            // ==========================
+            if (drawer != null)
+            {
+                // pega todas as detecções válidas do PostProcessor
+                List<Detection> dets = result.ValidDetections;
+
+                // ordena por maior confiança
+                dets.Sort((a, b) => b.score.CompareTo(a.score));
+
+                // limite configurado
+                if (maxDetections > 0 && dets.Count > maxDetections)
+                    dets = dets.GetRange(0, maxDetections);
+
+                // envia para o Drawer desenhar na UI
+                drawer.DrawBoxes(dets);
+            }
+
 
             // Fire detection event if object was detected
             if (result.HasDetection && OnObjectDetected != null)

@@ -810,6 +810,9 @@ MonoBehaviour:
   useAsyncReadback: 1
   backendType: 256
   confidenceThreshold: 0.25
+  drawer: {fileID: 2094365925}
+  maxDetections: 1
+  maxBoxesToProcess: 2000
   enableDebugMode: 1
 --- !u!1 &2090371338
 GameObject:
@@ -897,7 +900,54 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.AspectRatioFitter
   m_AspectMode: 0
-  m_AspectRatio: 0.5622317
+  m_AspectRatio: 1.4766582
+--- !u!1 &2094365924
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2094365926}
+  - component: {fileID: 2094365925}
+  m_Layer: 0
+  m_Name: BoundingBoxDrawer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2094365925
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2094365924}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f99287936afbab845ac3332691c89104, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BoundingBoxDrawer
+  webcamRawImage: {fileID: 2090371342}
+  bboxPrefab: {fileID: 2616054268020858828, guid: d394fe5d7722dee4f8279ddfec62ca79,
+    type: 3}
+--- !u!4 &2094365926
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2094365924}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 190.22333, y: 220, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -909,3 +959,4 @@ SceneRoots:
   - {fileID: 825712007}
   - {fileID: 1690447930}
   - {fileID: 174319582}
+  - {fileID: 2094365926}

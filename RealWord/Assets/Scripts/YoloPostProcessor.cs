@@ -1,5 +1,8 @@
-using Unity.InferenceEngine;
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using Unity.InferenceEngine;
+using UnityEngine;
 
 /// <summary>
 /// Processes YOLO detection output and extracts best detection
@@ -18,6 +21,8 @@ public class YoloPostProcessor
         public float BestScore;
         public string BestLabel;
         public int TotalDetections;
+
+        public List<Detection> ValidDetections; // todas as detecções válidas
         public bool HasDetection => BestClassIndex >= 0;
     }
 
@@ -53,7 +58,8 @@ public class YoloPostProcessor
             BestClassIndex = -1,
             BestScore = 0f,
             BestLabel = "",
-            TotalDetections = 0
+            TotalDetections = 0,
+            ValidDetections = new List<Detection>()
         };
 
         int numAttrs = outputTensor.shape[1];  // Number of attributes (x, y, w, h, class scores...)
@@ -75,6 +81,17 @@ public class YoloPostProcessor
             // Process this chunk of boxes
             for (int i = startBox; i < endBox; i++)
             {
+                // ---> LEITURA DAS COORDENADAS
+                float x = tensorData[0 * attrStride + i];
+                float y = tensorData[1 * attrStride + i];
+                float w = tensorData[2 * attrStride + i];
+                float h = tensorData[3 * attrStride + i];
+
+                float nx = x / 640f;   // já bate com seu modelo
+                float ny = y / 640f;
+                float nw = w / 640f;
+                float nh = h / 640f;
+
                 // Find class with highest confidence for this box
                 // Classes start at index 4 (after x, y, w, h)
                 int bestClassIdx = -1;
@@ -106,6 +123,22 @@ public class YoloPostProcessor
                         result.BestClassIndex = bestClassIdx;
                         result.BestLabel = GetLabelForClass(bestClassIdx);
                     }
+
+                    // ---> ADICIONA A DETECÇÃO COMPLETA
+                    Detection det = new Detection();
+                    det.label = GetLabelForClass(bestClassIdx);
+                    det.score = maxScore;
+
+                    // YOLO coord center → RECT top-left
+                    det.rect = new Rect(
+                        nx - nw / 2f,
+                        ny - nh / 2f,
+                        nw,
+                        nh
+                        );
+
+                    result.ValidDetections.Add(det);
+
                 }
             }
 
