@@ -2,6 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsString } from 'class-validator';
 
 export class SentencesDto {
+  @ApiProperty({
+    description: 'Translation of the object in the target language',
+    example: 'chair',
+  })
   @IsString()
   public objectTranslation: string;
 
