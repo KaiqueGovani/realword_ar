@@ -31,6 +31,13 @@ public class TTSManager : MonoBehaviour
     [Range(0.1f, 3.0f)]
     public float delayBetweenLanguages = 0.3f;
 
+    [Header("Language Settings")]
+    [Tooltip("Language code used when playing the translated phrase (user language).")]
+    public string translationLanguageCode = "";
+
+    [Tooltip("Language code used when playing the original English phrase.")]
+    public string englishLanguageCode = "en_US";
+
     private Coroutine currentPlaybackCoroutine;
 
     void Start()
@@ -53,6 +60,17 @@ public class TTSManager : MonoBehaviour
             {
                 AppLogger.Warning("DetectionResultManager not found. Cannot get phrase data.", CONTEXT);
             }
+        }
+
+        // Use the current TTS language as default translation language if not configured
+        if (string.IsNullOrEmpty(translationLanguageCode) && androidTTS != null)
+        {
+            translationLanguageCode = androidTTS.CurrentLanguageCode;
+        }
+
+        if (string.IsNullOrEmpty(englishLanguageCode))
+        {
+            englishLanguageCode = "en_US";
         }
     }
 
@@ -94,26 +112,27 @@ public class TTSManager : MonoBehaviour
             return;
         }
 
-        // Determine language for TTS
-        // If playing translation, use English (or target language)
-        // If playing original, use Portuguese (or source language)
-        string targetLanguage = androidTTS.CurrentLanguageCode;
+        string languageCode = shouldPlayTranslation
+            ? GetTranslationLanguageCode()
+            : GetEnglishLanguageCode();
 
-        // For now, we'll use the current TTS language setting
-        // In the future, this could be smarter based on which language we're playing
+        if (!TrySetLanguage(languageCode, shouldPlayTranslation ? "Set translation language" : "Set English language", phraseData.objectName))
+        {
+            return;
+        }
 
         // Play the text
         try
         {
             androidTTS.Speak(textToPlay, true, pitch, speechRate); // flush = true to stop any current playback
 
-            AppLogger.Info($"Playing TTS for '{phraseData.objectName}' (phrase {phraseData.index + 1}/{phraseData.totalPhrases}, translation: {shouldPlayTranslation}, language: {targetLanguage}): '{textToPlay.Substring(0, System.Math.Min(50, textToPlay.Length))}...'", CONTEXT);
+            AppLogger.Info($"Playing TTS for '{phraseData.objectName}' (phrase {phraseData.index + 1}/{phraseData.totalPhrases}, translation: {shouldPlayTranslation}, language: {languageCode}): '{textToPlay.Substring(0, System.Math.Min(50, textToPlay.Length))}...'", CONTEXT);
 
             AppLogger.Breadcrumb("TTS playback started", "tts_action", new Dictionary<string, string>
             {
                 { "object", phraseData.objectName },
                 { "text", textToPlay.Substring(0, System.Math.Min(100, textToPlay.Length)) },
-                { "language", targetLanguage }
+                { "language", languageCode }
             });
         }
         catch (System.Exception e)
@@ -122,7 +141,7 @@ public class TTSManager : MonoBehaviour
             {
                 { "object", phraseData.objectName },
                 { "text", textToPlay },
-                { "language", targetLanguage }
+                { "language", languageCode }
             });
         }
     }
@@ -148,7 +167,7 @@ public class TTSManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Plays the original phrase (in Portuguese)
+    /// Plays the original phrase (in English only)
     /// </summary>
     public void PlayOriginalPhrase(string objectName = null)
     {
@@ -156,11 +175,19 @@ public class TTSManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Plays the translation (in English)
+    /// Plays the translated phrase using the configured user language.
     /// </summary>
     public void PlayTranslation(string objectName = null)
     {
         PlayCurrentPhrase(objectName, true);
+    }
+
+    /// <summary>
+    /// Convenience helper to play only the original English phrase once.
+    /// </summary>
+    public void PlayEnglishOnly(string objectName = null)
+    {
+        PlayCurrentPhrase(objectName, false);
     }
 
     /// <summary>
@@ -243,118 +270,69 @@ public class TTSManager : MonoBehaviour
             yield break;
         }
 
-        // Store the current language to restore it later
-        string originalLanguage = androidTTS.CurrentLanguageCode;
-        bool hasError = false;
+        string translationLanguage = GetTranslationLanguageCode();
+        string englishLanguage = GetEnglishLanguageCode();
 
-        // STEP 1: Play translation in target language
-        AppLogger.Info($"Playing translation in {originalLanguage} for '{phraseData.objectName}'", CONTEXT);
-        
-        // Make sure we're in the correct language (should already be, but just in case)
+        if (!TrySetLanguage(translationLanguage, "Set translation language for dual playback", phraseData.objectName))
+        {
+            yield break;
+        }
+
+        yield return new WaitForSeconds(0.1f); // Small delay for language switch
+
+        bool translationFailed = false;
         try
         {
-            androidTTS.SetLanguage(originalLanguage);
+            androidTTS.Speak(phraseData.translation, true, pitch, speechRate);
         }
         catch (System.Exception e)
         {
             AppLogger.Exception(e, CONTEXT, new Dictionary<string, object>
             {
-                { "action", "SetLanguage to target language" },
-                { "object", phraseData.objectName },
-                { "targetLanguage", originalLanguage }
+                { "action", "Speak translation" },
+                { "object", phraseData.objectName }
             });
-            hasError = true;
+            translationFailed = true;
         }
 
-        if (!hasError)
+        if (!translationFailed)
         {
-            yield return new WaitForSeconds(0.1f); // Small delay for language switch
-            
-            try
-            {
-                androidTTS.Speak(phraseData.translation, true, pitch, speechRate);
-            }
-            catch (System.Exception e)
-            {
-                AppLogger.Exception(e, CONTEXT, new Dictionary<string, object>
-                {
-                    { "action", "Speak translation" },
-                    { "object", phraseData.objectName }
-                });
-                hasError = true;
-            }
+            // Estimate speech duration (rough approximation: ~150 words per minute)
+            float estimatedDuration = EstimateSpeechDuration(phraseData.translation, speechRate);
+            yield return new WaitForSeconds(estimatedDuration);
 
-            if (!hasError)
+            // Add delay between languages
+            yield return new WaitForSeconds(delayBetweenLanguages);
+
+            if (TrySetLanguage(englishLanguage, "Set English language for dual playback", phraseData.objectName))
             {
-                // Estimate speech duration (rough approximation: ~150 words per minute)
-                float estimatedDuration = EstimateSpeechDuration(phraseData.translation, speechRate);
-                yield return new WaitForSeconds(estimatedDuration);
-
-                // Add delay between languages
-                yield return new WaitForSeconds(delayBetweenLanguages);
-
-                // STEP 2: Play original phrase in English
-                AppLogger.Info($"Playing original phrase in English for '{phraseData.objectName}'", CONTEXT);
-                
+                yield return new WaitForSeconds(0.1f); // Small delay for language switch
                 try
                 {
-                    androidTTS.SetLanguage("en_US");
+                    androidTTS.Speak(phraseData.phrase, true, pitch, speechRate);
+
+                    AppLogger.Breadcrumb("Dual language TTS playback completed", "tts_action", new Dictionary<string, string>
+                    {
+                        { "object", phraseData.objectName },
+                        { "translationText", phraseData.translation.Substring(0, System.Math.Min(50, phraseData.translation.Length)) },
+                        { "originalText", phraseData.phrase.Substring(0, System.Math.Min(50, phraseData.phrase.Length)) },
+                        { "translationLanguage", translationLanguage },
+                        { "englishLanguage", englishLanguage }
+                    });
                 }
                 catch (System.Exception e)
                 {
                     AppLogger.Exception(e, CONTEXT, new Dictionary<string, object>
                     {
-                        { "action", "SetLanguage to en_US" },
+                        { "action", "Speak original (English) phrase" },
                         { "object", phraseData.objectName }
                     });
-                    hasError = true;
-                }
-
-                if (!hasError)
-                {
-                    yield return new WaitForSeconds(0.1f); // Small delay for language switch
-                    
-                    try
-                    {
-                        androidTTS.Speak(phraseData.phrase, true, pitch, speechRate);
-                        
-                        AppLogger.Breadcrumb("Dual language TTS playback completed", "tts_action", new Dictionary<string, string>
-                        {
-                            { "object", phraseData.objectName },
-                            { "translationText", phraseData.translation.Substring(0, System.Math.Min(50, phraseData.translation.Length)) },
-                            { "originalText", phraseData.phrase.Substring(0, System.Math.Min(50, phraseData.phrase.Length)) },
-                            { "targetLanguage", originalLanguage }
-                        });
-                    }
-                    catch (System.Exception e)
-                    {
-                        AppLogger.Exception(e, CONTEXT, new Dictionary<string, object>
-                        {
-                            { "action", "Speak original phrase" },
-                            { "object", phraseData.objectName }
-                        });
-                        hasError = true;
-                    }
                 }
             }
         }
 
-        // Restore language if error occurred
-        if (hasError)
-        {
-            try
-            {
-                androidTTS.SetLanguage(originalLanguage);
-            }
-            catch (System.Exception e)
-            {
-                AppLogger.Exception(e, CONTEXT, new Dictionary<string, object>
-                {
-                    { "action", "Restore original language after error" },
-                    { "targetLanguage", originalLanguage }
-                });
-            }
-        }
+        // Restore translation language so subsequent playback continues in the user-selected locale
+        TrySetLanguage(translationLanguage, "Restore translation language after dual playback", phraseData.objectName);
 
         currentPlaybackCoroutine = null;
     }
@@ -378,6 +356,62 @@ public class TTSManager : MonoBehaviour
         
         // Add a small buffer for safety (10%)
         return estimatedSeconds * 1.1f;
+    }
+
+    private string GetTranslationLanguageCode()
+    {
+        if (!string.IsNullOrEmpty(translationLanguageCode))
+        {
+            return translationLanguageCode;
+        }
+
+        if (androidTTS != null && !string.IsNullOrEmpty(androidTTS.CurrentLanguageCode))
+        {
+            return androidTTS.CurrentLanguageCode;
+        }
+
+        return "pt_BR";
+    }
+
+    private string GetEnglishLanguageCode()
+    {
+        if (!string.IsNullOrEmpty(englishLanguageCode))
+        {
+            return englishLanguageCode;
+        }
+
+        return "en_US";
+    }
+
+    private bool TrySetLanguage(string languageCode, string actionDescription, string objectName = null)
+    {
+        if (androidTTS == null)
+        {
+            AppLogger.Warning($"AndroidTTS not available. Cannot {actionDescription}.", CONTEXT);
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(languageCode))
+        {
+            AppLogger.Warning($"Language code missing for action '{actionDescription}'.", CONTEXT);
+            return false;
+        }
+
+        try
+        {
+            androidTTS.SetLanguage(languageCode);
+            return true;
+        }
+        catch (System.Exception e)
+        {
+            AppLogger.Exception(e, CONTEXT, new Dictionary<string, object>
+            {
+                { "action", actionDescription },
+                { "language", languageCode },
+                { "object", objectName ?? "current" }
+            });
+            return false;
+        }
     }
 }
 

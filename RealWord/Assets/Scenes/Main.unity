@@ -704,8 +704,8 @@ MonoBehaviour:
   historyPanel: {fileID: 49882475}
   maxHistoryEntries: 10
   startButton: {fileID: 458193408}
-  mainHistoryButton: {fileID: 1697209012}
-  mainSettingsButton: {fileID: 1697209011}
+  mainHistoryButton: {fileID: 2061711910}
+  mainSettingsButton: {fileID: 2061711913}
   detectionOverlayGroup: {fileID: 2061711903}
   floatingTagObject: {fileID: 2061711902}
   floatingTagText: {fileID: 2061711901}
@@ -1033,7 +1033,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1183057335
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1049,9 +1049,9 @@ RectTransform:
   - {fileID: 1482341856}
   m_Father: {fileID: 2061711892}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 537, y: 51}
+  m_AnchorMin: {x: 0.5, y: 0}
+  m_AnchorMax: {x: 0.5, y: 0}
+  m_AnchoredPosition: {x: 0, y: 15}
   m_SizeDelta: {x: 96, y: 96}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1183057336
@@ -1214,8 +1214,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 83, y: -920}
-  m_SizeDelta: {x: 200, y: 50}
+  m_AnchoredPosition: {x: 0, y: -913}
+  m_SizeDelta: {x: 119.7, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1215825154
 MonoBehaviour:
@@ -1246,8 +1246,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4278190080
-  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
+    rgba: 4294967295
+  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -1270,8 +1270,8 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
-  m_HorizontalAlignment: 1
+  m_fontStyle: 1
+  m_HorizontalAlignment: 2
   m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -1550,8 +1550,10 @@ MonoBehaviour:
   detectionResultManager: {fileID: 2031938434}
   playTranslation: 0
   pitch: 1
-  speechRate: 1
-  delayBetweenLanguages: 0.5
+  speechRate: 0.7
+  delayBetweenLanguages: 0.1
+  translationLanguageCode: 
+  englishLanguageCode: en_US
 --- !u!4 &1665398528
 Transform:
   m_ObjectHideFlags: 0
@@ -1847,30 +1849,6 @@ RectTransform:
     type: 3}
   m_PrefabInstance: {fileID: 1697209009}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1697209011 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6120937257917636564, guid: d4f56f156652a034f88489496f902379,
-    type: 3}
-  m_PrefabInstance: {fileID: 1697209009}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
---- !u!114 &1697209012 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3147863929036637247, guid: d4f56f156652a034f88489496f902379,
-    type: 3}
-  m_PrefabInstance: {fileID: 1697209009}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!1 &1697209013 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5725250916436721627, guid: d4f56f156652a034f88489496f902379,
@@ -2608,7 +2586,7 @@ PrefabInstance:
     - target: {fileID: 1250664962792768136, guid: 40c1240c64c25cd429f0c5601ada51f3,
         type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 1019
+      value: 989
       objectReference: {fileID: 0}
     - target: {fileID: 1250664962792768136, guid: 40c1240c64c25cd429f0c5601ada51f3,
         type: 3}
@@ -2723,7 +2701,7 @@ PrefabInstance:
     - target: {fileID: 2611217642137002415, guid: 40c1240c64c25cd429f0c5601ada51f3,
         type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 78
+      value: 68
       objectReference: {fileID: 0}
     - target: {fileID: 2611217642137002415, guid: 40c1240c64c25cd429f0c5601ada51f3,
         type: 3}
@@ -3456,6 +3434,30 @@ RectTransform:
     type: 3}
   m_PrefabInstance: {fileID: 2061711890}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2061711910 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6540281258025057538, guid: 40c1240c64c25cd429f0c5601ada51f3,
+    type: 3}
+  m_PrefabInstance: {fileID: 2061711890}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
+--- !u!114 &2061711913 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4260690252002323305, guid: 40c1240c64c25cd429f0c5601ada51f3,
+    type: 3}
+  m_PrefabInstance: {fileID: 2061711890}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!1 &2090371338
 GameObject:
   m_ObjectHideFlags: 0
@@ -3542,7 +3544,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.AspectRatioFitter
   m_AspectMode: 0
-  m_AspectRatio: 0.5
+  m_AspectRatio: 0.4623288
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
