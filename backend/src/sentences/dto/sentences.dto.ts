@@ -1,6 +1,9 @@
 import { IsString } from 'class-validator';
 
 export class SentencesDto {
+  @IsString()
+  public objectTranslation: string;
+
   @IsString({ each: true })
   public phrases: string[];
 

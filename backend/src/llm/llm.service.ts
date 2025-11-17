@@ -12,8 +12,7 @@ export class LlmService {
   private readonly logger = new Logger(LlmService.name);
   private readonly googleModel = process.env.GOOGLE_MODEL || 'gemini-2.5-flash';
   private readonly googleApiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || '';
-  private readonly apiVersion: 'v1' | 'v1beta' =
-    process.env.GOOGLE_API_VERSION === 'v1beta' ? 'v1beta' : 'v1';
+  private readonly apiVersion: 'v1' | 'v1beta' = process.env.GOOGLE_API_VERSION === 'v1beta' ? 'v1beta' : 'v1';
 
   public constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
 
@@ -28,7 +27,7 @@ export class LlmService {
       return cached as SentencesDto;
     }
 
-  this.logger.debug(`🚀 Cache miss for "${cacheKey}" — calling Google AI (Gemini)...`);
+    this.logger.debug(`🚀 Cache miss for "${cacheKey}" — calling Google AI (Gemini)...`);
     const result = await this.callGemini(params);
 
     await this.cacheManager.set(cacheKey, result);
@@ -160,8 +159,10 @@ export class LlmService {
     return (
       parsed !== null &&
       typeof parsed === 'object' &&
+      'objectTranslation' in parsed &&
       'phrases' in parsed &&
       'translations' in parsed &&
+      typeof parsed.objectTranslation === 'string' &&
       Array.isArray(parsed.phrases) &&
       Array.isArray(parsed.translations)
     );
@@ -171,6 +172,7 @@ export class LlmService {
     const { object, language } = params;
 
     return {
+      objectTranslation: object,
       phrases: [`This is a ${object}.`, `The ${object} is on the table.`],
       translations:
         language === 'pt'
@@ -196,6 +198,7 @@ export class LlmService {
 
             Output ONLY a valid JSON object in this format:
             {
+              "objectTranslation": "Translation of the word '${object}' to ${language}",
               "phrases": ["English sentence 1.", "English sentence 2."],
               "translations": ["Translation 1.", "Translation 2."]
             }`;
