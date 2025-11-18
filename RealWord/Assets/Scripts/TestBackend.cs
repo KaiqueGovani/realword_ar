@@ -26,6 +26,7 @@ public class SentenceRequestDto
 [System.Serializable]
 public class SentencesResponseDto
 {
+    public string objectTranslation;
     public string[] phrases;
     public string[] translations;
 }
@@ -68,6 +69,7 @@ public class TestBackend : MonoBehaviour
 
                 // Deserialize response to DTO
                 SentencesResponseDto responseDto = JsonUtility.FromJson<SentencesResponseDto>(request.downloadHandler.text);
+                Debug.Log($"Object translation: {responseDto.objectTranslation}");
 
                 // Process response data
                 for (int i = 0; i < responseDto.phrases.Length; i++)

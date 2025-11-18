@@ -11,7 +11,7 @@ public class BackendRequestManager : MonoBehaviour
 {
     private const string API_URL = "https://realword.kaique.net/sentences";
     private const string CONTEXT = "BackendRequestManager";
-    private const string DEFAULT_LANGUAGE = "português brasileiro";
+    private const string DEFAULT_LANGUAGE = "portugues_brasileiro";
     private const string LANGUAGE_PREF_KEY = "RealWord_TargetLanguage";
 
     [Header("Dependencies")]
@@ -74,17 +74,14 @@ public class BackendRequestManager : MonoBehaviour
 
         if (!string.IsNullOrEmpty(cachedJson))
         {
-            try
+            if (TryParseResponse(cachedJson, objectName, language, out SentencesResponseDto response, out string errorMessage))
             {
-                SentencesResponseDto response = JsonUtility.FromJson<SentencesResponseDto>(cachedJson);
                 AppLogger.Info($"Cache hit for '{objectName}' in '{language}'", CONTEXT);
                 return response;
             }
-            catch (System.Exception e)
-            {
-                AppLogger.Warning($"Failed to deserialize cached data for '{objectName}': {e.Message}", CONTEXT);
-                return null;
-            }
+
+            AppLogger.Warning($"Failed to deserialize cached data for '{objectName}': {errorMessage}", CONTEXT);
+            return null;
         }
 
         AppLogger.Info($"Cache miss for '{objectName}' in '{language}'", CONTEXT);
@@ -175,27 +172,9 @@ public class BackendRequestManager : MonoBehaviour
 
             if (request.result == UnityWebRequest.Result.Success)
             {
-                try
+                string responseText = request.downloadHandler.text;
+                if (TryParseResponse(responseText, objectName, language, out SentencesResponseDto responseDto, out string errorMessage))
                 {
-                    string responseText = request.downloadHandler.text;
-                    SentencesResponseDto responseDto = JsonUtility.FromJson<SentencesResponseDto>(responseText);
-
-                    // Validate response
-                    if (responseDto == null || responseDto.phrases == null || responseDto.translations == null)
-                    {
-                        throw new System.Exception("Invalid response structure");
-                    }
-
-                    if (responseDto.phrases.Length == 0)
-                    {
-                        throw new System.Exception("Response contains no phrases");
-                    }
-
-                    if (responseDto.phrases.Length != responseDto.translations.Length)
-                    {
-                        throw new System.Exception($"Phrases count ({responseDto.phrases.Length}) doesn't match translations count ({responseDto.translations.Length})");
-                    }
-
                     // Save to cache
                     if (cacheManager != null)
                     {
@@ -207,16 +186,16 @@ public class BackendRequestManager : MonoBehaviour
                     // Notify listeners
                     OnRequestComplete?.Invoke(objectName, language, responseDto);
                 }
-                catch (System.Exception e)
+                else
                 {
-                    AppLogger.Error($"Failed to parse API response for '{objectName}': {e.Message}", CONTEXT, new Dictionary<string, object>
+                    AppLogger.Error($"Failed to parse API response for '{objectName}': {errorMessage}", CONTEXT, new Dictionary<string, object>
                     {
                         { "object", objectName },
                         { "language", language },
-                        { "error", e.Message }
+                        { "error", errorMessage }
                     });
 
-                    OnRequestFailed?.Invoke(objectName, language, e.Message);
+                    OnRequestFailed?.Invoke(objectName, language, errorMessage);
                 }
             }
             else
@@ -257,6 +236,64 @@ public class BackendRequestManager : MonoBehaviour
             PlayerPrefs.Save();
             AppLogger.Info($"Language preference updated to: {language}", CONTEXT);
         }
+    }
+
+    /// <summary>
+    /// Deserializes and validates backend responses (from API or cache).
+    /// Ensures phrases, translations, and the translated object name are present.
+    /// </summary>
+    private bool TryParseResponse(string json, string objectName, string language, out SentencesResponseDto responseDto, out string errorMessage)
+    {
+        responseDto = null;
+        errorMessage = null;
+
+        if (string.IsNullOrEmpty(json))
+        {
+            errorMessage = "Empty response";
+            return false;
+        }
+
+        try
+        {
+            responseDto = JsonUtility.FromJson<SentencesResponseDto>(json);
+        }
+        catch (System.Exception e)
+        {
+            errorMessage = $"Deserialization failed: {e.Message}";
+            return false;
+        }
+
+        if (responseDto == null)
+        {
+            errorMessage = "Response payload missing";
+            return false;
+        }
+
+        if (responseDto.phrases == null || responseDto.translations == null)
+        {
+            errorMessage = "Invalid response structure";
+            return false;
+        }
+
+        if (responseDto.phrases.Length == 0)
+        {
+            errorMessage = "Response contains no phrases";
+            return false;
+        }
+
+        if (responseDto.phrases.Length != responseDto.translations.Length)
+        {
+            errorMessage = $"Phrases count ({responseDto.phrases.Length}) doesn't match translations count ({responseDto.translations.Length})";
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(responseDto.objectTranslation))
+        {
+            errorMessage = "Response missing object translation";
+            return false;
+        }
+
+        return true;
     }
 }
 

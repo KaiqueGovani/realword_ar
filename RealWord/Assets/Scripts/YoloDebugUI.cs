@@ -10,6 +10,10 @@ public class YoloDebugUI : MonoBehaviour
     [SerializeField] private Canvas debugCanvas;
     [SerializeField] private Font debugFont;
     [SerializeField] private int sortingOrder = 100;
+    [SerializeField] private Button DebugButton;
+    [SerializeField] private Sprite DebugActiveSprite;
+    [SerializeField] private Sprite DebugInactiveSprite;
+    [SerializeField] private GameObject DebugSimpleText;
 
     // Debug UI components
     private Text fpsText;
@@ -29,6 +33,8 @@ public class YoloDebugUI : MonoBehaviour
     private float currentFps;
 
     private bool isInitialized = false;
+    private bool isDebugActive = false;
+    private Image debugButtonIcon;
 
     public void Initialize()
     {
@@ -37,6 +43,10 @@ public class YoloDebugUI : MonoBehaviour
         SetupCanvas();
         SetupFont();
         CreateDebugTexts();
+        SetupDebugButton();
+
+        // Start with debug inactive
+        SetDebugActive(false);
 
         isInitialized = true;
         Debug.Log("[YoloDebugUI] Debug UI inicializada.");
@@ -209,11 +219,83 @@ public class YoloDebugUI : MonoBehaviour
         return currentFps;
     }
 
+    private void SetupDebugButton()
+    {
+        if (DebugButton != null)
+        {
+            // Find the Icon child
+            Transform iconTransform = DebugButton.transform.Find("Icon");
+            if (iconTransform != null)
+            {
+                debugButtonIcon = iconTransform.GetComponent<Image>();
+                if (debugButtonIcon == null)
+                {
+                    Debug.LogWarning("[YoloDebugUI] Icon child found but has no Image component.");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[YoloDebugUI] Could not find Icon child in DebugButton.");
+            }
+
+            // Add listener to toggle debug
+            DebugButton.onClick.AddListener(ToggleDebug);
+        }
+        else
+        {
+            Debug.LogWarning("[YoloDebugUI] DebugButton is not assigned.");
+        }
+    }
+
+    public void ToggleDebug()
+    {
+        SetDebugActive(!isDebugActive);
+    }
+
+    public void SetDebugActive(bool active)
+    {
+        isDebugActive = active;
+
+        // Toggle debug canvas
+        if (debugCanvas != null)
+        {
+            debugCanvas.gameObject.SetActive(active);
+        }
+
+        // Toggle debug simple text
+        if (DebugSimpleText != null)
+        {
+            DebugSimpleText.SetActive(active);
+        }
+
+        // Toggle development build console
+        Debug.unityLogger.logEnabled = active;
+
+        // Swap button icon sprite
+        if (debugButtonIcon != null)
+        {
+            debugButtonIcon.sprite = active ? DebugActiveSprite : DebugInactiveSprite;
+        }
+
+        Debug.Log($"[YoloDebugUI] Debug mode {(active ? "ENABLED" : "DISABLED")}");
+    }
+
+    public bool IsDebugActive()
+    {
+        return isDebugActive;
+    }
+
     private void OnDestroy()
     {
         if (debugCanvas != null && debugCanvas.gameObject != null)
         {
             Destroy(debugCanvas.gameObject);
+        }
+
+        // Remove button listener
+        if (DebugButton != null)
+        {
+            DebugButton.onClick.RemoveListener(ToggleDebug);
         }
     }
 }

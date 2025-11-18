@@ -292,6 +292,7 @@ public class DetectionResultManager : MonoBehaviour
         // Get current phrase and translation
         string phrase = data.phrases[currentIndex];
         string translation = data.translations[currentIndex];
+        string displayObjectName = data.objectTranslation;
 
         // Update UI
         if (uiManager != null)
@@ -299,6 +300,7 @@ public class DetectionResultManager : MonoBehaviour
             PhraseData currentPhrase = new PhraseData
             {
                 objectName = objectName,
+                objectTranslation = displayObjectName,
                 phrase = phrase,
                 translation = translation,
                 index = currentIndex,
@@ -310,7 +312,7 @@ public class DetectionResultManager : MonoBehaviour
                 currentPhrase.totalPhrases,
                 currentPhrase.objectName,
                 currentPhrase.phrase,
-                currentPhrase.translation,
+                currentPhrase.objectTranslation,
                 currentPhrase.translation
             );
             uiManager.AddHistoryEntry(currentPhrase);
@@ -416,6 +418,7 @@ public class DetectionResultManager : MonoBehaviour
         return new PhraseData
         {
             objectName = objectName,
+            objectTranslation = data.objectTranslation,
             phrase = data.phrases[currentIndex],
             translation = data.translations[currentIndex],
             index = currentIndex,
@@ -464,6 +467,7 @@ public class DetectionResultManager : MonoBehaviour
 public class PhraseData
 {
     public string objectName;
+    public string objectTranslation;
     public string phrase;
     public string translation;
     public int index;

@@ -3,6 +3,20 @@ using System.IO;
 using UnityEngine;
 
 [System.Serializable]
+public class CacheEntry
+{
+    public string key;
+    [TextArea(3, 10)]
+    public string value;
+
+    public CacheEntry(string key, string value)
+    {
+        this.key = key;
+        this.value = value;
+    }
+}
+
+[System.Serializable]
 public class CacheData
 {
     // Unity's JsonUtility cannot serialize Dictionary, so we use parallel Lists
@@ -56,12 +70,38 @@ public class CacheData
 public class LocalCacheManager : MonoBehaviour
 {
     private Dictionary<string, string> entries = new Dictionary<string, string>();
+    
+    [Header("Debug Options")]
+    [SerializeField]
+    [Tooltip("Enable this to clear all cache on next start (will auto-disable after clearing)")]
+    private bool clearCacheOnStart = false;
+    
+    [Header("Cache Inspector (Read-Only)")]
+    [SerializeField]
+    [Tooltip("Number of entries currently cached")]
+    private int cacheCount = 0;
+    
+    [SerializeField]
+    [Tooltip("Cache entries visible in Inspector - expand to see key-value pairs")]
+    private List<CacheEntry> inspectorEntries = new List<CacheEntry>();
+    
     private string cacheFilePath;
 
     void Awake()
     {
         cacheFilePath = Path.Combine(Application.persistentDataPath, "cache.json");
-        LoadCache();
+        
+        // Check if cache should be cleared on start
+        if (clearCacheOnStart)
+        {
+            ClearCache();
+            clearCacheOnStart = false; // Auto-disable after clearing
+            Debug.Log("[Cache] Cache cleared on start (debug option was enabled)");
+        }
+        else
+        {
+            LoadCache();
+        }
     }
 
     public void AddToCache(string key, string value)
@@ -73,6 +113,7 @@ public class LocalCacheManager : MonoBehaviour
         }
         
         entries[key] = value;
+        UpdateSerializedEntries();
         SaveCache();
         Debug.Log($"[Cache] Salvou '{key}' → '{value}'");
     }
@@ -117,6 +158,7 @@ public class LocalCacheManager : MonoBehaviour
                 string json = File.ReadAllText(cacheFilePath);
                 CacheData cacheData = JsonUtility.FromJson<CacheData>(json);
                 entries = cacheData.ToDictionary();
+                UpdateSerializedEntries();
                 Debug.Log($"[Cache] Cache local carregado com sucesso. Entradas: {entries.Count}");
             }
             catch (System.Exception e)
@@ -133,6 +175,7 @@ public class LocalCacheManager : MonoBehaviour
         {
             Debug.Log("[Cache] Nenhum cache existente encontrado.");
             entries = new Dictionary<string, string>();
+            UpdateSerializedEntries();
         }
     }
 
@@ -175,5 +218,43 @@ public class LocalCacheManager : MonoBehaviour
         }
         
         return result;
+    }
+
+    /// <summary>
+    /// Clears all cache entries from memory and deletes the cache file
+    /// </summary>
+    public void ClearCache()
+    {
+        entries.Clear();
+        UpdateSerializedEntries();
+        
+        // Delete the cache file if it exists
+        if (File.Exists(cacheFilePath))
+        {
+            try
+            {
+                File.Delete(cacheFilePath);
+                Debug.Log("[Cache] Cache file deleted successfully");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[Cache] Erro ao deletar arquivo de cache: {e.Message}");
+            }
+        }
+        
+        Debug.Log("[Cache] Cache limpo completamente");
+    }
+
+    /// <summary>
+    /// Updates the serialized entries field for Inspector visualization
+    /// </summary>
+    private void UpdateSerializedEntries()
+    {
+        inspectorEntries.Clear();
+        foreach (var kvp in entries)
+        {
+            inspectorEntries.Add(new CacheEntry(kvp.Key, kvp.Value));
+        }
+        cacheCount = entries.Count;
     }
 }

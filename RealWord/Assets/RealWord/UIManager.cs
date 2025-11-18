@@ -149,7 +149,7 @@ public class UIManager : MonoBehaviour
             maxHistoryEntries = 1;
         }
 
-        string entryKey = $"{phraseData.objectName}_{phraseData.index}_{phraseData.translation}";
+        string entryKey = $"{phraseData.objectName}->{phraseData.objectTranslation}_{phraseData.index}";
         if (entryKey == lastHistoryEntryKey)
         {
             return;
@@ -208,6 +208,13 @@ public class UIManager : MonoBehaviour
         activeHistoryItems.Clear();
     }
 
+    public void ClearHistory()
+    {
+        historyEntries.Clear();
+        ClearHistoryItems();
+        RefreshHistoryUI();
+    }
+
     private void ConfigureHistoryItem(GameObject itemObject, HistoryEntry entry)
     {
         if (itemObject == null || entry == null || entry.phraseData == null)
@@ -228,7 +235,7 @@ public class UIManager : MonoBehaviour
 
         if (summaryText != null)
         {
-            summaryText.text = $"{entry.phraseData.objectName} -> {entry.phraseData.translation}";
+            summaryText.text = $"{entry.phraseData.objectName} -> {entry.phraseData.objectTranslation}";
         }
 
         HistoryEntry capturedEntry = entry;
@@ -294,6 +301,7 @@ public class UIManager : MonoBehaviour
         return new PhraseData
         {
             objectName = source.objectName,
+            objectTranslation = source.objectTranslation,
             phrase = source.phrase,
             translation = source.translation,
             index = source.index,
