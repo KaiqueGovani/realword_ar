@@ -1,65 +1,96 @@
 # 📱 Real Word 
 
-Aplicativo educativo que utiliza *Realidade Aumentada (RA)* e *Inteligência Artificial (IA)* para auxiliar no aprendizado de inglês de forma interativa e inclusiva.  
+Aplicativo educativo que utiliza **Realidade Aumentada (RA)** e **Inteligência Artificial (IA)** para auxiliar no aprendizado de inglês de forma interativa e contextualizada.
 
 ---
 
-## 🎯 Objetivo do Projeto  
-O projeto tem como propósito desenvolver uma ferramenta inovadora que permita ao usuário apontar a câmera do celular para objetos do cotidiano e visualizar instantaneamente o nome correspondente em inglês.  
+## 🎯 Objetivo do Projeto
 
-Este projeto está alinhado com o *ODS 4* da ONU:  
-> Assegurar a educação inclusiva e equitativa de qualidade, e promover oportunidades de aprendizagem ao longo da vida para todas e todos.  
+O **Real Word** é uma ferramenta inovadora que permite ao usuário apontar a câmera do celular para objetos do cotidiano e visualizar instantaneamente:
+- Nome do objeto em **inglês** e **português**
+- Frases contextuais em inglês
+- Pronúncia via **Text-to-Speech (TTS)**
+- Histórico de traduções para revisão
 
----
-
-## 🛠️ Tecnologias Utilizadas  
-- **Unity (C#)** → Desenvolvimento do front-end e back-end do aplicativo.  
-- *NestJS* → Servidor para gerenciamento de requisições e integração com serviços externos.  
-- *LLM (Large Language Model)* → Suporte inteligente para reconhecimento e processamento de linguagem.  
-- *Figma* → Prototipação e definição do design visual da aplicação.  
+Este projeto está alinhado com o **ODS 4** da ONU:
+> *"Assegurar a educação inclusiva e equitativa de qualidade, e promover oportunidades de aprendizagem ao longo da vida para todas e todos."*
 
 ---
 
-## 📌 Funcionalidades Principais (MVP)  
-- Reconhecimento de objetos por meio da câmera do celular.  
-- Identificação instantânea com exibição do nome em inglês.  
-- Interface amigável e acessível, com base em protótipos desenvolvidos no Figma.  
-- Integração com IA para suporte e evolução futura de funcionalidades.  
+## 🛠️ Tecnologias Utilizadas
+
+- **Unity (C#)** → Desenvolvimento do aplicativo móvel com AR Foundation
+- **NestJS** → API backend para gerenciamento de requisições
+- **Gemini API (Google AI Studio)** → Geração de frases contextuais em inglês
+- **AR Foundation** → Detecção de objetos e realidade aumentada
+- **Figma** → Prototipação e design da interface (UI/UX)
+- **Android TTS** → Conversão de texto em áudio nativo
 
 ---
 
-## 🚀 Etapas do Desenvolvimento  
-1. *Prototipação* → Criação do design e fluxo de telas no Figma.  
-2. *Configuração do Ambiente* → Unity para mobile + NestJS para servidor.  
-3. *Implementação RA + IA* → Reconhecimento de objetos e tradução.  
-4. *Integração do Backend* → Comunicação entre o app e o servidor.  
-5. *Validação Educacional* → Testes alinhados ao objetivo de aprendizagem inclusiva.  
+## 📱 Funcionalidades Principais
+
+### 🔍 Detecção e Tradução de Objetos
+- Feed da câmera em tempo real com AR Foundation
+- Detecção de objetos usando visão computacional
+- Geração de frases contextuais em inglês via Gemini API
+- Conversão de texto em áudio (TTS) nativo
+- Exibição de traduções sobreposta à imagem da câmera
+
+### 🧭 Interface e Navegação
+- Menu lateral com acesso às principais funcionalidades
+- Navegação entre telas (Principal, Configurações, Histórico)
+
+### 📚 Histórico e Armazenamento
+- Registro local das traduções realizadas
+- Exibição do histórico com opção de replay de áudio
+
+### 🔗 Backend e Integração
+- Endpoint `/sentences` para geração de frases contextuais
 
 ---
 
-## 🌍 Conexão com os ODS  
-Este projeto apoia o *ODS 4 - Educação de Qualidade*, ao oferecer um recurso tecnológico inovador que amplia as oportunidades de aprendizado de línguas de forma prática, interativa e acessível.  
+## 💾 Sistema de Cache Local
+
+- Implementado em Unity para armazenar nomes e frases geradas pela API Gemini
+- Funcionamento em modo offline após primeira consulta
+- Economia de recursos reduzindo chamadas desnecessárias à API
+- Persistência de dados entre sessões do aplicativo
 
 ---
 
-## 💾 Sistema de Cache Local  
+## 📋 Etapas de Desenvolvimento
 
-- Foi implementado um sistema de **cache local** na Unity para armazenar nomes e frases geradas pela LLM, permitindo que o aplicativo funcione mesmo em modo offline.  
-- Os dados são armazenados em formato **JSON**, no diretório `Application.persistentDataPath` do dispositivo.  
-- Internamente, o cache utiliza um **dicionário em memória (`Dictionary<string, string>`)** para acesso rápido, e sincroniza as informações com o arquivo JSON sempre que novos dados são adicionados.  
-
----
-
-## ✍️ Autores  
-Desenvolvido por:  
-- Felipe Mariano  
-- Felipe Rusig  
-- João Rafael  
-- Kaique Govani  
-- Mateus Nauhan  
-- Milton Penha  
+1. **Pesquisa e Planejamento** → Definição do problema e tecnologias
+2. **Prototipação** → Design de interface e experiência no Figma
+3. **Configuração do Ambiente** → Unity + NestJS + Integrações
+4. **Implementação Core** → Detecção AR + Integração Gemini API
+5. **Desenvolvimento de Funcionalidades** → TTS, Histórico, UI
+6. **Testes e Validação** → Usabilidade, desempenho e experiência
+7. **Entrega e Documentação** → PoC final e documentação completa
 
 ---
 
-## 📖 Licença  
+## 🧪 Testes Realizados
+
+- **Testes de Usabilidade**: Observação de interações reais com usuários
+- **Validação de Detecção**: Eficácia no reconhecimento de objetos cotidianos
+- **Experiência do Usuário**: Avaliação da fluidez e intuitividade da interface
+- **Desempenho Técnico**: Tempo de resposta e estabilidade do aplicativo
+
+---
+
+## 👥 Autores
+Desenvolvido por:
+- Felipe Augusto de Almeida Mariano - Áudio (TTS) & Testes 
+- Felipe Rusig de Paiva - Integração Gemini API / Backend 
+- João Rafael Jordão Pereira - Documentação & Pesquisa 
+- Kaique Medeiros Govani - Unity Lead & Coordenação 
+- Mateus Nauhan Vieira Matos - Detecção de Objetos 
+- Milton Rogerio Dotto Penha Junior - UI/UX no Unity 
+
+---
+
+## 📄 Licença
+
 Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
